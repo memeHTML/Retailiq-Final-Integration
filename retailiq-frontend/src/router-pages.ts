@@ -41,6 +41,8 @@ export const NotFoundPage = lazy(() => import('@/pages/NotFound'));
 export const ServerErrorPage = lazy(() => import('@/pages/ServerError'));
 export const SupplierPage = lazy(() => import('@/pages/Suppliers'));
 export const SupplierDetailPage = lazy(() => import('@/pages/SupplierDetail'));
+export const SupplierCreatePage = lazy(() => import('@/pages/SupplierCreate'));
+export const SupplierEditPage = lazy(() => import('@/pages/SupplierEdit'));
 export const PurchaseOrdersPage = lazy(() => import('@/pages/PurchaseOrders'));
 export const PurchaseOrderDetailPage = lazy(() => import('@/pages/PurchaseOrderDetail'));
 export const PurchaseOrderCreatePage = lazy(() => import('@/pages/PurchaseOrderCreate'));

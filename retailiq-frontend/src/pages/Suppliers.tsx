@@ -1,302 +1,214 @@
-/**
- * src/pages/Suppliers.tsx
- * Oracle Document sections consumed: 3.2, 5.1, 7.2, 12.7
- * Last item from Section 11 risks addressed here: Mixed response envelopes, store scoping
- */
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { PageFrame } from '@/components/layout/PageFrame';
-import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
-import { ErrorState } from '@/components/ui/ErrorState';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { DataTable } from '@/components/ui/DataTable';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { DataTable } from '@/components/ui/DataTable';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { Input } from '@/components/ui/Input';
+import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
+import { Badge } from '@/components/ui/Badge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { PageFrame } from '@/components/layout/PageFrame';
+import { useDeleteSupplier, useSupplier, useSuppliers } from '@/hooks/suppliers';
+import { uiStore } from '@/stores/uiStore';
+import { normalizeApiError } from '@/utils/errors';
 import type { ApiError } from '@/types/api';
-import { authStore } from '@/stores/authStore';
-import { suppliersApi } from '@/api/suppliers';
+import type { SupplierListItem } from '@/api/suppliers';
 
-// Supplier types based on Oracle Section 4.1
-interface Supplier {
-  supplier_id: string;
-  store_id: string;
-  name: string;
-  contact_person: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  gst_number?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  analytics?: {
-    total_orders: number;
-    total_value: number;
-    last_order_date?: string;
-  };
+function ProductsCountCell({ supplierId }: { supplierId: string }) {
+  const { data } = useSupplier(supplierId);
+  return <span>{data?.sourced_products.length ?? '…'}</span>;
 }
 
-interface _SupplierListResponse {
-  suppliers: Supplier[];
-  total: number;
-  page: number;
-  pages: number;
-}
-
-export default function Suppliers() {
+export default function SuppliersPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { user } = authStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showInactive, setShowInactive] = useState(false);
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; supplier?: Supplier }>({ open: false });
+  const addToast = uiStore((state) => state.addToast);
+  const { data, isLoading, error, refetch } = useSuppliers();
+  const deleteMutation = useDeleteSupplier();
+  const [search, setSearch] = useState('');
+  const [supplierToDelete, setSupplierToDelete] = useState<SupplierListItem | null>(null);
 
-  // Fetch suppliers with pagination and filters
-  const {
-    data: suppliersData,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['suppliers', { search: searchTerm, active: !showInactive }],
-    queryFn: () => suppliersApi.listSuppliers({
-      search: searchTerm,
-      is_active: !showInactive || undefined,
-    }),
-    staleTime: 30000,
-  });
+  const filteredSuppliers = useMemo(() => {
+    const suppliers = data ?? [];
+    const needle = search.trim().toLowerCase();
+    if (!needle) {
+      return suppliers;
+    }
+    return suppliers.filter((supplier) =>
+      [supplier.name, supplier.contact_name ?? '', supplier.email ?? '', supplier.phone ?? '']
+        .join(' ')
+        .toLowerCase()
+        .includes(needle),
+    );
+  }, [data, search]);
 
-  // Delete supplier mutation
-  const deleteSupplierMutation = useMutation({
-    mutationFn: (supplierId: string) => suppliersApi.deleteSupplier(supplierId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      setDeleteDialog({ open: false });
-    },
-  });
+  const handleDelete = async () => {
+    if (!supplierToDelete) {
+      return;
+    }
 
-  const handleEdit = (supplier: Supplier) => {
-    navigate(`/suppliers/${supplier.supplier_id}/edit`);
-  };
-
-  const handleView = (supplier: Supplier) => {
-    navigate(`/suppliers/${supplier.supplier_id}`);
-  };
-
-  const handleDelete = (supplier: Supplier) => {
-    setDeleteDialog({ open: true, supplier });
-  };
-
-  const confirmDelete = () => {
-    if (deleteDialog.supplier) {
-      deleteSupplierMutation.mutate(deleteDialog.supplier.supplier_id);
+    try {
+      await deleteMutation.mutateAsync(supplierToDelete.id);
+      addToast({
+        title: 'Supplier deleted',
+        message: supplierToDelete.name,
+        variant: 'success',
+      });
+      setSupplierToDelete(null);
+    } catch {
+      // surfaced by mutation error state
     }
   };
 
-  const handleCreatePurchaseOrder = (supplier: Supplier) => {
-    navigate(`/purchase-orders/create?supplier=${supplier.supplier_id}`);
-  };
-
-  // Table columns
-  const columns = [
-    {
-      key: 'name',
-      header: 'Supplier Name',
-      render: (row: Supplier) => row.name,
-    },
-    {
-      key: 'contact_person',
-      header: 'Contact',
-      render: (row: Supplier) => row.contact_person,
-    },
-    {
-      key: 'email',
-      header: 'Email',
-      render: (row: Supplier) => row.email || '-',
-    },
-    {
-      key: 'phone',
-      header: 'Phone',
-      render: (row: Supplier) => row.phone || '-',
-    },
-    {
-      key: 'orders',
-      header: 'Orders',
-      render: (row: Supplier) => row.analytics?.total_orders || 0,
-    },
-    {
-      key: 'total_value',
-      header: 'Total Value',
-      render: (row: Supplier) => row.analytics?.total_value 
-        ? `₹${row.analytics.total_value.toFixed(2)}`
-        : '₹0.00',
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row: Supplier) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-          row.is_active 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-gray-100 text-gray-800'
-        }`}>
-          {row.is_active ? 'Active' : 'Inactive'}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (row: Supplier) => (
-        <div className="flex space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleView(row)}
-          >
-            View
-          </Button>
-          {user?.role === 'owner' && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEdit(row)}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleCreatePurchaseOrder(row)}
-              >
-                New PO
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-600 hover:text-red-700"
-                onClick={() => handleDelete(row)}
-              >
-                Delete
-              </Button>
-            </>
-          )}
-        </div>
-      ),
-    },
-  ];
-
-
-  // Loading state
   if (isLoading) {
     return (
-      <PageFrame title="Suppliers" subtitle="Manage store-scoped suppliers and links">
+      <PageFrame title="Suppliers" subtitle="Manage supplier records and product links">
         <Card>
           <CardHeader>
-            <SkeletonLoader width="30%" height="24px" variant="text" />
+            <SkeletonLoader width="40%" height="24px" variant="text" />
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex justify-between">
-                  <SkeletonLoader width="40%" height="20px" variant="text" />
-                  <SkeletonLoader width="20%" height="20px" variant="text" />
-                </div>
-              ))}
-            </div>
+          <CardContent className="space-y-3">
+            <SkeletonLoader width="100%" height="40px" variant="rect" />
+            <SkeletonLoader width="100%" height="300px" variant="rect" />
           </CardContent>
         </Card>
       </PageFrame>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <PageFrame title="Suppliers" subtitle="Manage store-scoped suppliers and links">
-        <ErrorState
-          error={error as unknown as ApiError}
-          onRetry={() => refetch()}
-        />
+      <PageFrame title="Suppliers" subtitle="Manage supplier records and product links">
+        <ErrorState error={normalizeApiError(error) as ApiError} onRetry={() => refetch()} />
       </PageFrame>
     );
   }
 
-  const suppliers = suppliersData?.suppliers || [];
-
   return (
-    <PageFrame title="Suppliers" subtitle="Manage store-scoped suppliers and links">
-      {/* ⚠️ RISK [MEDIUM]: Suppliers are store-scoped, ensure proper tenancy */}
-      
-      {/* Actions Bar */}
-      <div className="mb-6 flex justify-between items-center">
-        <div className="flex space-x-4">
+    <PageFrame
+      title="Suppliers"
+      subtitle="Manage supplier records and product links"
+      actions={
+        <Button type="button" onClick={() => navigate('/suppliers/new')}>
+          Add Supplier
+        </Button>
+      }
+    >
+      <Card className="mb-6">
+        <CardContent className="pt-6">
           <Input
-            placeholder="Search suppliers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by supplier name, contact, email, or phone"
           />
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={(e) => setShowInactive(e.target.checked)}
-              className="mr-2"
-            />
-            Show inactive
-          </label>
-        </div>
-        {user?.role === 'owner' && (
-          <Button onClick={() => navigate('/suppliers/create')}>
-            Add Supplier
-          </Button>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Suppliers List */}
-      {suppliers.length === 0 ? (
-        <EmptyState
-          title="No suppliers found"
-          body={searchTerm 
-            ? "Try adjusting your search terms" 
-            : "Get started by adding your first supplier"
-          }
-          action={!searchTerm && user?.role === 'owner' ? {
-            label: 'Add Supplier',
-            onClick: () => navigate('/suppliers/create')
-          } : undefined}
-        />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {suppliers.length} supplier{suppliers.length !== 1 ? 's' : ''}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>{filteredSuppliers.length} supplier{filteredSuppliers.length === 1 ? '' : 's'}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredSuppliers.length === 0 ? (
+            <EmptyState
+              title="No suppliers found"
+              body={search ? 'Try a different search term.' : 'Create your first supplier to get started.'}
+              action={
+                search
+                  ? undefined
+                  : {
+                      label: 'Add Supplier',
+                      onClick: () => navigate('/suppliers/new'),
+                    }
+              }
+            />
+          ) : (
             <DataTable
-              columns={columns}
-              data={suppliers}
+              data={filteredSuppliers}
+              emptyMessage="No suppliers available."
+              columns={[
+                {
+                  key: 'name',
+                  header: 'Name',
+                  render: (supplier) => (
+                    <div>
+                      <div className="font-medium">{supplier.name}</div>
+                      <div className="text-xs text-muted-foreground">{supplier.id}</div>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'contact_name',
+                  header: 'Contact Person',
+                  render: (supplier) => supplier.contact_name ?? '—',
+                },
+                {
+                  key: 'email',
+                  header: 'Email',
+                  render: (supplier) => supplier.email ?? '—',
+                },
+                {
+                  key: 'phone',
+                  header: 'Phone',
+                  render: (supplier) => supplier.phone ?? '—',
+                },
+                {
+                  key: 'terms',
+                  header: 'Payment Terms',
+                  render: (supplier) => supplier.payment_terms_days ?? '—',
+                },
+                {
+                  key: 'lead_time',
+                  header: 'Avg Lead Time',
+                  render: (supplier) => supplier.avg_lead_time_days ?? '—',
+                },
+                {
+                  key: 'fill_rate',
+                  header: 'Fill Rate',
+                  render: (supplier) => `${supplier.fill_rate_90d.toFixed(1)}%`,
+                },
+                {
+                  key: 'price_change',
+                  header: 'Price Change',
+                  render: (supplier) => (supplier.price_change_6m_pct === null ? '—' : `${supplier.price_change_6m_pct.toFixed(2)}%`),
+                },
+                {
+                  key: 'products',
+                  header: 'Products Linked',
+                  render: (supplier) => <ProductsCountCell supplierId={supplier.id} />,
+                },
+                {
+                  key: 'actions',
+                  header: 'Actions',
+                  render: (supplier) => (
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="secondary" onClick={() => navigate(`/suppliers/${supplier.id}`)}>
+                        View
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => navigate(`/suppliers/${supplier.id}/edit`)}>
+                        Edit
+                      </Button>
+                      <Button type="button" variant="destructive" onClick={() => setSupplierToDelete(supplier)}>
+                        Delete
+                      </Button>
+                    </div>
+                  ),
+                },
+              ]}
             />
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
-        open={deleteDialog.open}
-        title="Delete Supplier?"
-        body={`Are you sure you want to delete ${deleteDialog.supplier?.name}? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        destructive={true}
-        onConfirm={confirmDelete}
-        onCancel={() => setDeleteDialog({ open: false })}
+        open={Boolean(supplierToDelete)}
+        title="Delete Supplier"
+        body={`Delete ${supplierToDelete?.name}? This will soft-delete the supplier in the backend.`}
+        confirmLabel={deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+        destructive
+        onConfirm={handleDelete}
+        onCancel={() => setSupplierToDelete(null)}
       />
     </PageFrame>
   );

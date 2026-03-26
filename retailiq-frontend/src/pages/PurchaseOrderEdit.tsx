@@ -1,76 +1,83 @@
-/**
- * src/pages/PurchaseOrderEdit.tsx
- * Oracle Document sections consumed: 3.2, 5.2, 7.2
- * Last item from Section 11 risks addressed here: Store scoping, PO line items validation
- */
-import { useParams, useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { PurchaseOrderForm } from '@/components/purchases/PurchaseOrderForm';
-import { usePurchaseOrderQuery } from '@/hooks/purchaseOrders';
+import { usePurchaseOrder } from '@/hooks/purchaseOrders';
+import { normalizeApiError } from '@/utils/errors';
 import type { ApiError } from '@/types/api';
 
 export default function PurchaseOrderEditPage() {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const purchaseOrderId = id || '';
+  const { poId, id } = useParams<{ poId?: string; id?: string }>();
+  const purchaseOrderId = poId ?? id ?? '';
+  const { data: purchaseOrder, isLoading, error, refetch } = usePurchaseOrder(purchaseOrderId);
 
-  // Fetch purchase order
-  const { data: purchaseOrder, isLoading, error } = usePurchaseOrderQuery(purchaseOrderId);
+  const initialValues = useMemo(
+    () =>
+      purchaseOrder
+        ? {
+            supplier_id: purchaseOrder.supplier_id,
+            expected_delivery_date: purchaseOrder.expected_delivery_date ?? '',
+            notes: purchaseOrder.notes ?? '',
+            items: purchaseOrder.items.map((item) => ({
+              product_id: String(item.product_id),
+              ordered_qty: String(item.ordered_qty),
+              unit_price: String(item.unit_price),
+            })),
+          }
+        : undefined,
+    [purchaseOrder],
+  );
 
   if (isLoading) {
     return (
-      <PageFrame title="Edit Purchase Order">
-        <div className="flex justify-center">
-          <SkeletonLoader width="100%" height="600px" variant="rect" />
-        </div>
+      <PageFrame title="Edit Purchase Order" subtitle="Update draft PO details">
+        <SkeletonLoader width="100%" height="360px" variant="rect" />
       </PageFrame>
     );
   }
 
   if (error) {
     return (
-      <PageFrame title="Edit Purchase Order">
-        <ErrorState error={error as unknown as ApiError} />
+      <PageFrame title="Edit Purchase Order" subtitle="Update draft PO details">
+        <ErrorState error={normalizeApiError(error) as ApiError} onRetry={() => refetch()} />
       </PageFrame>
     );
   }
 
-  if (!purchaseOrder) {
+  if (!purchaseOrder || !initialValues) {
     return (
-      <PageFrame title="Edit Purchase Order">
-        <div>Purchase order not found</div>
+      <PageFrame title="Edit Purchase Order" subtitle="Update draft PO details">
+        <EmptyState title="Purchase order not found" body="The purchase order may have been deleted." />
       </PageFrame>
     );
   }
 
-  const handleCancel = () => {
-    navigate(`/purchase-orders/${purchaseOrderId}`);
-  };
-
-  const initialData = {
-    supplier_id: purchaseOrder.supplier_id,
-    expected_delivery_date: purchaseOrder.expected_delivery_date ?? '',
-    notes: purchaseOrder.notes ?? '',
-    internal_notes: purchaseOrder.internal_notes ?? '',
-    line_items: purchaseOrder.line_items.map((item) => ({
-      product_id: item.product_id,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      tax_rate: item.tax_rate,
-      discount_rate: item.discount_rate,
-      notes: item.notes ?? '',
-    })),
-  };
+  if (purchaseOrder.status !== 'DRAFT') {
+    return (
+      <PageFrame title="Edit Purchase Order" subtitle="Only draft POs are editable">
+        <EmptyState
+          title="PO is locked"
+          body="The backend only allows draft purchase orders to be edited."
+          action={{
+            label: 'Back to Purchase Orders',
+            onClick: () => navigate(`/purchase-orders/${purchaseOrderId}`),
+          }}
+        />
+      </PageFrame>
+    );
+  }
 
   return (
-    <PageFrame title={`Edit Purchase Order ${purchaseOrderId}`}>
+    <PageFrame title={`Edit Purchase Order ${purchaseOrderId}`} subtitle="Update draft PO details">
       <PurchaseOrderForm
         purchaseOrderId={purchaseOrderId}
-        initialData={initialData}
+        initialValues={initialValues}
+        onCancel={() => navigate(`/purchase-orders/${purchaseOrderId}`)}
         onSuccess={(updatedPurchaseOrderId) => navigate(`/purchase-orders/${updatedPurchaseOrderId}`)}
-        onCancel={handleCancel}
       />
     </PageFrame>
   );

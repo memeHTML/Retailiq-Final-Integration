@@ -1,172 +1,145 @@
-/**
- * src/hooks/purchaseOrders.ts
- * Oracle Document sections consumed: 3.2, 5.2
- * Last item from Section 11 risks addressed here: Store scoping, PO status tracking
- */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as purchaseOrdersApi from '@/api/purchaseOrders';
-import type { 
-  CreatePurchaseOrderRequest, 
-  UpdatePurchaseOrderRequest,
-  ReceivePurchaseOrderRequest,
-  ListPurchaseOrdersRequest,
-  PurchaseOrderStatus 
+import {
+  cancelPurchaseOrder,
+  confirmPurchaseOrder,
+  createPurchaseOrder,
+  downloadPurchaseOrderPdf,
+  emailPurchaseOrder,
+  getPurchaseOrder,
+  getPurchaseOrderPdfMetadata,
+  listPurchaseOrders,
+  receivePurchaseOrder,
+  sendPurchaseOrder,
+  updatePurchaseOrder,
+  type PurchaseOrderCreatePayload,
+  type PurchaseOrderDetail,
+  type PurchaseOrderListItem,
+  type PurchaseOrderListParams,
+  type PurchaseOrderPdfMetadata,
+  type PurchaseOrderReceivePayload,
+  type PurchaseOrderUpdatePayload,
+  type PurchaseOrderStatus,
 } from '@/api/purchaseOrders';
 
-// Query keys
 export const purchaseOrderKeys = {
   all: ['purchaseOrders'] as const,
   lists: () => [...purchaseOrderKeys.all, 'list'] as const,
-  list: (params: ListPurchaseOrdersRequest) => [...purchaseOrderKeys.lists(), params] as const,
+  list: (params: PurchaseOrderListParams = {}) => [...purchaseOrderKeys.lists(), params] as const,
   details: () => [...purchaseOrderKeys.all, 'detail'] as const,
-  detail: (id: string) => [...purchaseOrderKeys.details(), id] as const,
-  summary: () => [...purchaseOrderKeys.all, 'summary'] as const,
+  detail: (purchaseOrderId: string) => [...purchaseOrderKeys.details(), purchaseOrderId] as const,
+  pdf: (purchaseOrderId: string) => [...purchaseOrderKeys.all, 'pdf', purchaseOrderId] as const,
 };
 
-// List purchase orders
-export const usePurchaseOrdersQuery = (params: ListPurchaseOrdersRequest = {}) => {
-  return useQuery({
+export function usePurchaseOrders(params: PurchaseOrderListParams = {}) {
+  return useQuery<PurchaseOrderListItem[]>({
     queryKey: purchaseOrderKeys.list(params),
-    queryFn: () => purchaseOrdersApi.purchaseOrdersApi.listPurchaseOrders(params),
-    staleTime: 30000, // 30 seconds
+    queryFn: () => listPurchaseOrders(params),
+    staleTime: 30_000,
   });
-};
+}
 
-// Get purchase order by ID
-export const usePurchaseOrderQuery = (purchaseOrderId: string | null) => {
-  return useQuery({
-    queryKey: purchaseOrderKeys.detail(purchaseOrderId || ''),
-    queryFn: () => purchaseOrdersApi.purchaseOrdersApi.getPurchaseOrder(purchaseOrderId!),
+export function usePurchaseOrder(purchaseOrderId?: string) {
+  return useQuery<PurchaseOrderDetail>({
+    queryKey: purchaseOrderKeys.detail(purchaseOrderId ?? ''),
+    queryFn: () => getPurchaseOrder(purchaseOrderId ?? ''),
     enabled: Boolean(purchaseOrderId),
-    staleTime: 60000, // 1 minute
+    staleTime: 60_000,
   });
-};
+}
 
-// Get purchase order summary
-export const usePurchaseOrderSummaryQuery = () => {
-  return useQuery({
-    queryKey: purchaseOrderKeys.summary(),
-    queryFn: () => purchaseOrdersApi.purchaseOrdersApi.getPurchaseOrderSummary(),
-    staleTime: 60000, // 1 minute
+export function usePurchaseOrderPdfMetadata(purchaseOrderId?: string) {
+  return useQuery<PurchaseOrderPdfMetadata>({
+    queryKey: purchaseOrderKeys.pdf(purchaseOrderId ?? ''),
+    queryFn: () => getPurchaseOrderPdfMetadata(purchaseOrderId ?? ''),
+    enabled: Boolean(purchaseOrderId),
   });
-};
+}
 
-// Create purchase order mutation
-export const useCreatePurchaseOrderMutation = () => {
+export function useCreatePurchaseOrder() {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: (data: CreatePurchaseOrderRequest) => purchaseOrdersApi.purchaseOrdersApi.createPurchaseOrder(data),
+    mutationFn: (payload: PurchaseOrderCreatePayload) => createPurchaseOrder(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.summary() });
     },
   });
-};
+}
 
-// Update purchase order mutation
-export const useUpdatePurchaseOrderMutation = () => {
+export function useUpdatePurchaseOrder() {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: ({ purchaseOrderId, data }: { purchaseOrderId: string; data: UpdatePurchaseOrderRequest }) =>
-      purchaseOrdersApi.purchaseOrdersApi.updatePurchaseOrder(purchaseOrderId, data),
-    onSuccess: (_, { purchaseOrderId }) => {
+    mutationFn: ({ purchaseOrderId, payload }: { purchaseOrderId: string; payload: PurchaseOrderUpdatePayload }) =>
+      updatePurchaseOrder(purchaseOrderId, payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(variables.purchaseOrderId) });
+    },
+  });
+}
+
+export function useSendPurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (purchaseOrderId: string) => sendPurchaseOrder(purchaseOrderId),
+    onSuccess: (_data, purchaseOrderId) => {
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(purchaseOrderId) });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.summary() });
     },
   });
-};
+}
 
-// Delete purchase order mutation
-export const useDeletePurchaseOrderMutation = () => {
+export function useReceivePurchaseOrder() {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: (purchaseOrderId: string) => purchaseOrdersApi.purchaseOrdersApi.deletePurchaseOrder(purchaseOrderId),
-    onSuccess: () => {
+    mutationFn: ({ purchaseOrderId, payload }: { purchaseOrderId: string; payload: PurchaseOrderReceivePayload }) =>
+      receivePurchaseOrder(purchaseOrderId, payload),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(variables.purchaseOrderId) });
     },
   });
-};
+}
 
-// Send purchase order mutation
-export const useSendPurchaseOrderMutation = () => {
+export function useConfirmPurchaseOrder() {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: (purchaseOrderId: string) => purchaseOrdersApi.purchaseOrdersApi.sendPurchaseOrder(purchaseOrderId),
-    onSuccess: (_, purchaseOrderId) => {
+    mutationFn: (purchaseOrderId: string) => confirmPurchaseOrder(purchaseOrderId),
+    onSuccess: (_data, purchaseOrderId) => {
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(purchaseOrderId) });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.summary() });
     },
   });
-};
+}
 
-// Confirm purchase order mutation
-export const useConfirmPurchaseOrderMutation = () => {
+export function useCancelPurchaseOrder() {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: (purchaseOrderId: string) => purchaseOrdersApi.purchaseOrdersApi.confirmPurchaseOrder(purchaseOrderId),
-    onSuccess: (_, purchaseOrderId) => {
+    mutationFn: (purchaseOrderId: string) => cancelPurchaseOrder(purchaseOrderId),
+    onSuccess: (_data, purchaseOrderId) => {
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
       queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(purchaseOrderId) });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.summary() });
     },
   });
-};
+}
 
-// Receive purchase order mutation
-export const useReceivePurchaseOrderMutation = () => {
+export function useEmailPurchaseOrder() {
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ purchaseOrderId, data }: { purchaseOrderId: string; data: ReceivePurchaseOrderRequest }) =>
-      purchaseOrdersApi.purchaseOrdersApi.receivePurchaseOrder(purchaseOrderId, data),
-    onSuccess: (_, { purchaseOrderId }) => {
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(purchaseOrderId) });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.summary() });
-    },
-  });
-};
-
-// Cancel purchase order mutation
-export const useCancelPurchaseOrderMutation = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ purchaseOrderId, reason }: { purchaseOrderId: string; reason?: string }) =>
-      purchaseOrdersApi.purchaseOrdersApi.cancelPurchaseOrder(purchaseOrderId, reason),
-    onSuccess: (_, { purchaseOrderId }) => {
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(purchaseOrderId) });
-      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.summary() });
-    },
-  });
-};
-
-// Generate PDF mutation
-export const useGeneratePdfMutation = () => {
-  return useMutation({
-    mutationFn: (purchaseOrderId: string) => purchaseOrdersApi.purchaseOrdersApi.generatePdf(purchaseOrderId),
-  });
-};
-
-// Email purchase order mutation
-export const useEmailPurchaseOrderMutation = () => {
   return useMutation({
     mutationFn: ({ purchaseOrderId, email }: { purchaseOrderId: string; email: string }) =>
-      purchaseOrdersApi.purchaseOrdersApi.emailPurchaseOrder(purchaseOrderId, email),
+      emailPurchaseOrder(purchaseOrderId, email),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: purchaseOrderKeys.detail(variables.purchaseOrderId) });
+    },
   });
-};
+}
 
-// Helper functions
-export const getPurchaseOrderStatusColor = (status: PurchaseOrderStatus): string => {
+export function usePurchaseOrderPdfDownload() {
+  return useMutation({
+    mutationFn: (purchaseOrderId: string) => downloadPurchaseOrderPdf(purchaseOrderId),
+  });
+}
+
+export function getPurchaseOrderStatusColor(status: PurchaseOrderStatus | string): string {
   switch (status) {
     case 'DRAFT':
       return 'gray';
@@ -174,60 +147,45 @@ export const getPurchaseOrderStatusColor = (status: PurchaseOrderStatus): string
       return 'blue';
     case 'CONFIRMED':
       return 'indigo';
-    case 'PARTIALLY_RECEIVED':
-      return 'yellow';
-    case 'RECEIVED':
+    case 'FULFILLED':
       return 'green';
     case 'CANCELLED':
-      return 'red';
-    case 'REJECTED':
       return 'red';
     default:
       return 'gray';
   }
-};
+}
 
-export const getPurchaseOrderStatusText = (status: PurchaseOrderStatus): string => {
+export function getPurchaseOrderStatusText(status: PurchaseOrderStatus | string): string {
   switch (status) {
     case 'DRAFT':
       return 'Draft';
     case 'SENT':
-      return 'Sent to Supplier';
+      return 'Sent';
     case 'CONFIRMED':
       return 'Confirmed';
-    case 'PARTIALLY_RECEIVED':
-      return 'Partially Received';
-    case 'RECEIVED':
+    case 'FULFILLED':
       return 'Received';
     case 'CANCELLED':
       return 'Cancelled';
-    case 'REJECTED':
-      return 'Rejected';
     default:
       return status;
   }
-};
+}
 
-export const canEditPurchaseOrder = (_status: PurchaseOrderStatus): boolean => {
-  return _status === 'DRAFT';
-};
+export const canEditPurchaseOrder = (status: PurchaseOrderStatus | string) => status === 'DRAFT';
+export const canSendPurchaseOrder = (status: PurchaseOrderStatus | string) => status === 'DRAFT';
+export const canConfirmPurchaseOrder = (status: PurchaseOrderStatus | string) => status === 'SENT';
+export const canReceivePurchaseOrder = (status: PurchaseOrderStatus | string) => status === 'SENT' || status === 'CONFIRMED';
+export const canCancelPurchaseOrder = (status: PurchaseOrderStatus | string) => status === 'DRAFT' || status === 'SENT';
 
-export const canDeletePurchaseOrder = (status: PurchaseOrderStatus): boolean => {
-  return status === 'DRAFT';
-};
-
-export const canSendPurchaseOrder = (status: PurchaseOrderStatus): boolean => {
-  return status === 'DRAFT';
-};
-
-export const canConfirmPurchaseOrder = (_status: PurchaseOrderStatus): boolean => {
-  return _status === 'SENT';
-};
-
-export const canReceivePurchaseOrder = (status: PurchaseOrderStatus): boolean => {
-  return status === 'SENT' || status === 'PARTIALLY_RECEIVED';
-};
-
-export const canCancelPurchaseOrder = (status: PurchaseOrderStatus): boolean => {
-  return !['RECEIVED', 'CANCELLED', 'REJECTED'].includes(status);
-};
+export const usePurchaseOrdersQuery = usePurchaseOrders;
+export const usePurchaseOrderQuery = usePurchaseOrder;
+export const useCreatePurchaseOrderMutation = useCreatePurchaseOrder;
+export const useUpdatePurchaseOrderMutation = useUpdatePurchaseOrder;
+export const useSendPurchaseOrderMutation = useSendPurchaseOrder;
+export const useReceivePurchaseOrderMutation = useReceivePurchaseOrder;
+export const useConfirmPurchaseOrderMutation = useConfirmPurchaseOrder;
+export const useCancelPurchaseOrderMutation = useCancelPurchaseOrder;
+export const useEmailPurchaseOrderMutation = useEmailPurchaseOrder;
+export const useGeneratePdfMutation = usePurchaseOrderPdfDownload;
