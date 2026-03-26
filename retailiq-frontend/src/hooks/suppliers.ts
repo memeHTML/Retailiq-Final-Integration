@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createSupplier,
@@ -10,6 +11,7 @@ import {
   type SupplierListItem,
   type SupplierListParams,
   type SupplierProductLinkPayload,
+  type SupplierProductLinkUpdatePayload,
   type SupplierUpdatePayload,
   unlinkSupplierProduct,
   updateSupplier,
@@ -39,6 +41,58 @@ export function useSupplier(supplierId?: string) {
     enabled: Boolean(supplierId),
     staleTime: 60_000,
   });
+}
+
+const normalizeIds = (supplierIds: readonly (string | undefined | null)[]) =>
+  Array.from(new Set(supplierIds.filter((supplierId): supplierId is string => Boolean(supplierId)))).sort();
+
+export function useSupplierHydration(supplierIds: readonly (string | undefined | null)[] = []) {
+  const queryClient = useQueryClient();
+  const ids = useMemo(() => normalizeIds(supplierIds), [supplierIds.join('|')]);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [isHydrating, setIsHydrating] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const missingIds = ids.filter((supplierId) => !queryClient.getQueryData<SupplierDetail>(supplierKeys.detail(supplierId)));
+
+    if (ids.length === 0 || missingIds.length === 0) {
+      setIsHydrating(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setIsHydrating(true);
+
+    void Promise.all(
+      missingIds.map((supplierId) =>
+        queryClient.prefetchQuery({
+          queryKey: supplierKeys.detail(supplierId),
+          queryFn: () => getSupplier(supplierId),
+          staleTime: 60_000,
+        }),
+      ),
+    ).finally(() => {
+      if (!cancelled) {
+        setIsHydrating(false);
+        setRefreshTick((value) => value + 1);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ids, queryClient]);
+
+  const supplierDetails = useMemo(() => {
+    return ids.reduce<Record<string, SupplierDetail | undefined>>((accumulator, supplierId) => {
+      accumulator[supplierId] = queryClient.getQueryData<SupplierDetail>(supplierKeys.detail(supplierId));
+      return accumulator;
+    }, {});
+  }, [ids, queryClient, refreshTick]);
+
+  return { supplierDetails, isHydrating };
 }
 
 export function useCreateSupplier() {
@@ -80,6 +134,7 @@ export function useLinkSupplierProduct() {
     mutationFn: ({ supplierId, payload }: { supplierId: string; payload: SupplierProductLinkPayload }) =>
       linkSupplierProduct(supplierId, payload),
     onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: supplierKeys.lists() });
       queryClient.invalidateQueries({ queryKey: supplierKeys.detail(variables.supplierId) });
     },
   });
@@ -95,9 +150,10 @@ export function useUpdateSupplierProductLink() {
     }: {
       supplierId: string;
       productId: number;
-      payload: Partial<SupplierProductLinkPayload>;
+      payload: SupplierProductLinkUpdatePayload;
     }) => updateSupplierProductLink(supplierId, productId, payload),
     onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: supplierKeys.lists() });
       queryClient.invalidateQueries({ queryKey: supplierKeys.detail(variables.supplierId) });
     },
   });
@@ -109,6 +165,7 @@ export function useUnlinkSupplierProduct() {
     mutationFn: ({ supplierId, productId }: { supplierId: string; productId: number }) =>
       unlinkSupplierProduct(supplierId, productId),
     onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: supplierKeys.lists() });
       queryClient.invalidateQueries({ queryKey: supplierKeys.detail(variables.supplierId) });
     },
   });

@@ -39,6 +39,7 @@ export function Header({ onOpenPalette }: HeaderProps) {
     const pathname = location.pathname;
     if (pathname.startsWith('/store')) return 'Store Profile';
     if (pathname.startsWith('/inventory')) return 'Inventory';
+    if (pathname.startsWith('/suppliers')) return 'Suppliers';
     if (pathname.startsWith('/purchase-orders')) return 'Purchase Orders';
     if (pathname.startsWith('/transactions')) return 'Transactions';
     if (pathname.startsWith('/customers')) return 'Customers';

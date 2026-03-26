@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
+import { PurchaseOrderPdfRecovery } from '@/components/shared/PurchaseOrderPdfRecovery';
 import {
   canCancelPurchaseOrder,
   canConfirmPurchaseOrder,
@@ -30,6 +31,7 @@ import { uiStore } from '@/stores/uiStore';
 import { normalizeApiError } from '@/utils/errors';
 import { formatCurrency } from '@/utils/numbers';
 import type { ApiError } from '@/types/api';
+import { downloadPurchaseOrderPdfWithFallback, PurchaseOrderPdfDownloadError, type PurchaseOrderPdfMetadata } from '@/api/purchaseOrders';
 
 type ReceiveDraftItem = {
   product_id: number;
@@ -62,6 +64,12 @@ export default function PurchaseOrderDetailPage() {
   const [emailValue, setEmailValue] = useState('');
   const [receiveItems, setReceiveItems] = useState<ReceiveDraftItem[]>([]);
   const [receiveNotes, setReceiveNotes] = useState('');
+  const [receiveError, setReceiveError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [pdfRecovery, setPdfRecovery] = useState<{
+    metadata: PurchaseOrderPdfMetadata | null;
+    errorMessage: string;
+  } | null>(null);
 
   const productMap = useMemo(
     () => new Map((productsQuery.data?.data ?? []).map((product) => [product.product_id, product])),
@@ -104,14 +112,24 @@ export default function PurchaseOrderDetailPage() {
   );
 
   const handleDownload = async () => {
-    const { downloadPurchaseOrderPdf } = await import('@/api/purchaseOrders');
-    const blob = await downloadPurchaseOrderPdf(purchaseOrderId);
-    const url = window.URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `purchase-order-${purchaseOrderId}.pdf`;
-    anchor.click();
-    window.URL.revokeObjectURL(url);
+    try {
+      const blob = await downloadPurchaseOrderPdfWithFallback(purchaseOrderId);
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `purchase-order-${purchaseOrderId}.pdf`;
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+      setPdfRecovery(null);
+    } catch (error) {
+      const metadata = error instanceof PurchaseOrderPdfDownloadError ? error.metadata : null;
+      setPdfRecovery({
+        metadata,
+        errorMessage: metadata
+          ? `PDF job ${metadata.job_id} exists, but the file download is temporarily unavailable.`
+          : 'Unable to download the purchase order PDF right now.',
+      });
+    }
   };
 
   const handleSend = async () => {
@@ -145,7 +163,18 @@ export default function PurchaseOrderDetailPage() {
   };
 
   const handleReceive = async () => {
+    const invalidReceipt = receiveItems.find((item) => {
+      const nextValue = Number(item.value || 0);
+      return !Number.isFinite(nextValue) || nextValue < 0 || nextValue > item.remaining_qty;
+    });
+
+    if (invalidReceipt) {
+      setReceiveError(`Received quantity for product #${invalidReceipt.product_id} cannot exceed the remaining quantity.`);
+      return;
+    }
+
     try {
+      setReceiveError(null);
       await receiveMutation.mutateAsync({
         purchaseOrderId,
         payload: {
@@ -164,7 +193,13 @@ export default function PurchaseOrderDetailPage() {
   };
 
   const handleEmail = async () => {
+    if (!emailValue.trim()) {
+      setEmailError('Please enter a recipient email address.');
+      return;
+    }
+
     try {
+      setEmailError(null);
       await emailMutation.mutateAsync({ purchaseOrderId, email: emailValue.trim() });
       addToast({ title: 'Purchase order emailed', message: emailValue.trim(), variant: 'success' });
       setEmailOpen(false);
@@ -225,7 +260,13 @@ export default function PurchaseOrderDetailPage() {
             </Button>
           ) : null}
           {canReceivePurchaseOrder(purchaseOrder.status) ? (
-            <Button type="button" onClick={() => setReceiveOpen(true)}>
+            <Button
+              type="button"
+              onClick={() => {
+                setReceiveError(null);
+                setReceiveOpen(true);
+              }}
+            >
               Receive
             </Button>
           ) : null}
@@ -238,7 +279,14 @@ export default function PurchaseOrderDetailPage() {
             Download PDF
           </Button>
           {purchaseOrder.status === 'DRAFT' || purchaseOrder.status === 'SENT' || purchaseOrder.status === 'CONFIRMED' ? (
-            <Button type="button" variant="secondary" onClick={() => setEmailOpen(true)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setEmailError(null);
+                setEmailOpen(true);
+              }}
+            >
               Email PO
             </Button>
           ) : null}
@@ -363,11 +411,23 @@ export default function PurchaseOrderDetailPage() {
                 <h3 className="text-lg font-semibold">Receive Purchase Order</h3>
                 <p className="text-sm text-muted-foreground">Submit the quantities actually received for each line item.</p>
               </div>
-              <Button type="button" variant="secondary" onClick={() => setReceiveOpen(false)}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setReceiveError(null);
+                  setReceiveOpen(false);
+                }}
+              >
                 Close
               </Button>
             </div>
             <div className="mt-6 space-y-4">
+              {receiveError ? (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                  {receiveError}
+                </div>
+              ) : null}
               {receiveItems.map((item, index) => (
                 <div key={item.product_id} className="rounded-lg border border-border p-4">
                   <div className="grid gap-4 md:grid-cols-4">
@@ -410,7 +470,14 @@ export default function PurchaseOrderDetailPage() {
               <Button type="button" loading={receiveMutation.isPending} onClick={handleReceive}>
                 Submit Receipt
               </Button>
-              <Button type="button" variant="secondary" onClick={() => setReceiveOpen(false)}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setReceiveError(null);
+                  setReceiveOpen(false);
+                }}
+              >
                 Cancel
               </Button>
             </div>
@@ -426,11 +493,23 @@ export default function PurchaseOrderDetailPage() {
                 <h3 className="text-lg font-semibold">Email Purchase Order</h3>
                 <p className="text-sm text-muted-foreground">The backend requires a recipient email address.</p>
               </div>
-              <Button type="button" variant="secondary" onClick={() => setEmailOpen(false)}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setEmailError(null);
+                  setEmailOpen(false);
+                }}
+              >
                 Close
               </Button>
             </div>
             <div className="mt-6 space-y-4">
+              {emailError ? (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                  {emailError}
+                </div>
+              ) : null}
               <label className="space-y-2">
                 <span className="text-sm font-medium">Recipient Email</span>
                 <Input type="email" value={emailValue} onChange={(event) => setEmailValue(event.target.value)} placeholder="supplier@example.com" />
@@ -440,13 +519,29 @@ export default function PurchaseOrderDetailPage() {
               <Button type="button" loading={emailMutation.isPending} onClick={handleEmail}>
                 Send Email
               </Button>
-              <Button type="button" variant="secondary" onClick={() => setEmailOpen(false)}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setEmailError(null);
+                  setEmailOpen(false);
+                }}
+              >
                 Cancel
               </Button>
             </div>
           </div>
         </div>
       ) : null}
+
+      <PurchaseOrderPdfRecovery
+        open={Boolean(pdfRecovery)}
+        purchaseOrderId={purchaseOrderId}
+        metadata={pdfRecovery?.metadata ?? null}
+        errorMessage={pdfRecovery?.errorMessage ?? 'Unable to download the purchase order PDF right now.'}
+        onRetry={handleDownload}
+        onClose={() => setPdfRecovery(null)}
+      />
     </PageFrame>
   );
 }

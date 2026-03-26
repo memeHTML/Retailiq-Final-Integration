@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -9,11 +9,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
-import { useProductQuery, useProductsQuery } from '@/hooks/inventory';
+import { useProductsQuery } from '@/hooks/inventory';
 import {
   useLinkSupplierProduct,
   useSupplier,
   useUnlinkSupplierProduct,
+  useUpdateSupplierProductLink,
 } from '@/hooks/suppliers';
 import { uiStore } from '@/stores/uiStore';
 import { normalizeApiError } from '@/utils/errors';
@@ -21,11 +22,6 @@ import { formatCurrency } from '@/utils/numbers';
 import type { ApiError } from '@/types/api';
 
 type TabKey = 'details' | 'products' | 'orders';
-
-function ProductLookupOption({ productId }: { productId: number }) {
-  const { data } = useProductQuery(productId);
-  return <span>{data?.name ?? `Product #${productId}`}</span>;
-}
 
 export default function SupplierDetailPage() {
   const navigate = useNavigate();
@@ -35,22 +31,25 @@ export default function SupplierDetailPage() {
   const { data: supplier, isLoading, error, refetch } = useSupplier(resolvedSupplierId);
   const productsQuery = useProductsQuery({ page_size: 500 });
   const linkMutation = useLinkSupplierProduct();
+  const updateLinkMutation = useUpdateSupplierProductLink();
   const unlinkMutation = useUnlinkSupplierProduct();
   const [activeTab, setActiveTab] = useState<TabKey>('details');
   const [linkOpen, setLinkOpen] = useState(false);
   const [unlinkTarget, setUnlinkTarget] = useState<number | null>(null);
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [productId, setProductId] = useState('');
   const [quotedPrice, setQuotedPrice] = useState('');
   const [leadTimeDays, setLeadTimeDays] = useState('');
   const [preferred, setPreferred] = useState(false);
+  const isEditingLink = editingProductId !== null;
 
   const productOptions = useMemo(() => {
     const products = productsQuery.data?.data ?? [];
     const needle = search.trim().toLowerCase();
     const linkedIds = new Set(supplier?.sourced_products.map((item) => item.product_id) ?? []);
     return products.filter((product) => {
-      if (linkedIds.has(product.product_id)) {
+      if (linkedIds.has(product.product_id) && product.product_id !== editingProductId) {
         return false;
       }
       if (!needle) {
@@ -61,9 +60,7 @@ export default function SupplierDetailPage() {
         .toLowerCase()
         .includes(needle);
     });
-  }, [productsQuery.data, search, supplier?.sourced_products]);
-
-  const selectedProduct = Number(productId || 0);
+  }, [productsQuery.data, search, supplier?.sourced_products, editingProductId]);
 
   const resetLinkForm = () => {
     setProductId('');
@@ -71,6 +68,7 @@ export default function SupplierDetailPage() {
     setLeadTimeDays('');
     setPreferred(false);
     setSearch('');
+    setEditingProductId(null);
   };
 
   const handleLinkProduct = async () => {
@@ -79,17 +77,29 @@ export default function SupplierDetailPage() {
     }
 
     try {
-      await linkMutation.mutateAsync({
-        supplierId: resolvedSupplierId,
-        payload: {
-          product_id: Number(productId),
-          quoted_price: Number(quotedPrice),
-          lead_time_days: leadTimeDays ? Number(leadTimeDays) : undefined,
-          is_preferred_supplier: preferred,
-        },
-      });
+      const commonPayload = {
+        quoted_price: Number(quotedPrice),
+        lead_time_days: leadTimeDays ? Number(leadTimeDays) : undefined,
+      };
+
+      if (isEditingLink) {
+        await updateLinkMutation.mutateAsync({
+          supplierId: resolvedSupplierId,
+          productId: editingProductId,
+          payload: commonPayload,
+        });
+      } else {
+        await linkMutation.mutateAsync({
+          supplierId: resolvedSupplierId,
+          payload: {
+            product_id: Number(productId),
+            ...commonPayload,
+            is_preferred_supplier: preferred,
+          },
+        });
+      }
       addToast({
-        title: 'Product linked',
+        title: isEditingLink ? 'Product link updated' : 'Product linked',
         message: 'Supplier-product relationship saved',
         variant: 'success',
       });
@@ -285,17 +295,18 @@ export default function SupplierDetailPage() {
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => {
-                        setLinkOpen(true);
-                        setProductId(String(item.product_id));
-                        setQuotedPrice(String(item.quoted_price));
-                        setLeadTimeDays(item.lead_time_days === null ? '' : String(item.lead_time_days));
-                        setPreferred(false);
-                      }}
-                    >
-                      Edit Link
-                    </Button>
-                  </div>
+                  onClick={() => {
+                    setLinkOpen(true);
+                    setEditingProductId(item.product_id);
+                    setProductId(String(item.product_id));
+                    setQuotedPrice(String(item.quoted_price));
+                    setLeadTimeDays(item.lead_time_days === null ? '' : String(item.lead_time_days));
+                    setPreferred(false);
+                  }}
+                >
+                  Edit Link
+                </Button>
+              </div>
                 </div>
               ))
             )}
@@ -364,6 +375,7 @@ export default function SupplierDetailPage() {
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
                   value={productId}
                   onChange={(event) => setProductId(event.target.value)}
+                  disabled={isEditingLink}
                 >
                   <option value="">Select product</option>
                   {productOptions.map((product) => (
@@ -381,14 +393,20 @@ export default function SupplierDetailPage() {
                 <span className="text-sm font-medium">Lead Time Days</span>
                 <Input type="number" min={0} step="1" value={leadTimeDays} onChange={(event) => setLeadTimeDays(event.target.value)} />
               </label>
-              <label className="flex items-center gap-2 md:col-span-2">
-                <input type="checkbox" checked={preferred} onChange={(event) => setPreferred(event.target.checked)} />
-                <span className="text-sm font-medium">Preferred supplier</span>
-              </label>
+              {!isEditingLink ? (
+                <label className="flex items-center gap-2 md:col-span-2">
+                  <input type="checkbox" checked={preferred} onChange={(event) => setPreferred(event.target.checked)} />
+                  <span className="text-sm font-medium">Preferred supplier</span>
+                </label>
+              ) : (
+                <div className="rounded-lg border border-border/70 bg-muted/30 px-4 py-3 text-sm text-muted-foreground md:col-span-2">
+                  Preferred supplier status is preserved by the backend for existing links.
+                </div>
+              )}
             </div>
             <div className="mt-6 flex gap-3">
-              <Button type="button" loading={linkMutation.isPending} onClick={handleLinkProduct}>
-                Save Link
+              <Button type="button" loading={linkMutation.isPending || updateLinkMutation.isPending} onClick={handleLinkProduct}>
+                {isEditingLink ? 'Save Changes' : 'Save Link'}
               </Button>
               <Button
                 type="button"

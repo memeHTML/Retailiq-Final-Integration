@@ -14,6 +14,8 @@ const items: CommandItem[] = [
   { label: 'Inventory', description: 'Products and stock', to: routes.inventory },
   { label: 'Transactions', description: 'Sales and returns', to: routes.transactions },
   { label: 'Customers', description: 'Customer records', to: routes.customers },
+  { label: 'Suppliers', description: 'Supplier records and product links', to: routes.suppliers },
+  { label: 'Purchase Orders', description: 'Drafts, receiving, and PDF export', to: routes.purchaseOrders },
   { label: 'Analytics', description: 'Reports and insights', to: routes.analytics },
   { label: 'Financials', description: 'Ledger and treasury', to: routes.finance },
   { label: 'AI Assistant', description: 'Ask the assistant', to: routes.ai },

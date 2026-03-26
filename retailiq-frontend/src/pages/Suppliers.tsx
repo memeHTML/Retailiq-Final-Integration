@@ -10,21 +10,18 @@ import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { Badge } from '@/components/ui/Badge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { PageFrame } from '@/components/layout/PageFrame';
-import { useDeleteSupplier, useSupplier, useSuppliers } from '@/hooks/suppliers';
+import { useDeleteSupplier, useSupplierHydration, useSuppliers } from '@/hooks/suppliers';
 import { uiStore } from '@/stores/uiStore';
 import { normalizeApiError } from '@/utils/errors';
 import type { ApiError } from '@/types/api';
 import type { SupplierListItem } from '@/api/suppliers';
 
-function ProductsCountCell({ supplierId }: { supplierId: string }) {
-  const { data } = useSupplier(supplierId);
-  return <span>{data?.sourced_products.length ?? '…'}</span>;
-}
-
 export default function SuppliersPage() {
   const navigate = useNavigate();
   const addToast = uiStore((state) => state.addToast);
   const { data, isLoading, error, refetch } = useSuppliers();
+  const supplierIds = useMemo(() => (data ?? []).map((supplier) => supplier.id), [data]);
+  const { supplierDetails, isHydrating } = useSupplierHydration(supplierIds);
   const deleteMutation = useDeleteSupplier();
   const [search, setSearch] = useState('');
   const [supplierToDelete, setSupplierToDelete] = useState<SupplierListItem | null>(null);
@@ -176,7 +173,14 @@ export default function SuppliersPage() {
                 {
                   key: 'products',
                   header: 'Products Linked',
-                  render: (supplier) => <ProductsCountCell supplierId={supplier.id} />,
+                  render: (supplier) => {
+                    const supplierDetail = supplierDetails[supplier.id];
+                    if (!supplierDetail) {
+                      return <span>{isHydrating ? 'Loading…' : '—'}</span>;
+                    }
+
+                    return <span>{supplierDetail.sourced_products.length} products</span>;
+                  },
                 },
                 {
                   key: 'actions',

@@ -1,9 +1,10 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   cancelPurchaseOrder,
   confirmPurchaseOrder,
   createPurchaseOrder,
-  downloadPurchaseOrderPdf,
+  downloadPurchaseOrderPdfWithFallback,
   emailPurchaseOrder,
   getPurchaseOrder,
   getPurchaseOrderPdfMetadata,
@@ -45,6 +46,60 @@ export function usePurchaseOrder(purchaseOrderId?: string) {
     enabled: Boolean(purchaseOrderId),
     staleTime: 60_000,
   });
+}
+
+const normalizeIds = (purchaseOrderIds: readonly (string | undefined | null)[]) =>
+  Array.from(new Set(purchaseOrderIds.filter((purchaseOrderId): purchaseOrderId is string => Boolean(purchaseOrderId)))).sort();
+
+export function usePurchaseOrderHydration(purchaseOrderIds: readonly (string | undefined | null)[] = []) {
+  const queryClient = useQueryClient();
+  const ids = useMemo(() => normalizeIds(purchaseOrderIds), [purchaseOrderIds.join('|')]);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [isHydrating, setIsHydrating] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const missingIds = ids.filter(
+      (purchaseOrderId) => !queryClient.getQueryData<PurchaseOrderDetail>(purchaseOrderKeys.detail(purchaseOrderId)),
+    );
+
+    if (ids.length === 0 || missingIds.length === 0) {
+      setIsHydrating(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setIsHydrating(true);
+
+    void Promise.all(
+      missingIds.map((purchaseOrderId) =>
+        queryClient.prefetchQuery({
+          queryKey: purchaseOrderKeys.detail(purchaseOrderId),
+          queryFn: () => getPurchaseOrder(purchaseOrderId),
+          staleTime: 60_000,
+        }),
+      ),
+    ).finally(() => {
+      if (!cancelled) {
+        setIsHydrating(false);
+        setRefreshTick((value) => value + 1);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ids, queryClient]);
+
+  const purchaseOrderDetails = useMemo(() => {
+    return ids.reduce<Record<string, PurchaseOrderDetail | undefined>>((accumulator, purchaseOrderId) => {
+      accumulator[purchaseOrderId] = queryClient.getQueryData<PurchaseOrderDetail>(purchaseOrderKeys.detail(purchaseOrderId));
+      return accumulator;
+    }, {});
+  }, [ids, queryClient, refreshTick]);
+
+  return { purchaseOrderDetails, isHydrating };
 }
 
 export function usePurchaseOrderPdfMetadata(purchaseOrderId?: string) {
@@ -135,7 +190,7 @@ export function useEmailPurchaseOrder() {
 
 export function usePurchaseOrderPdfDownload() {
   return useMutation({
-    mutationFn: (purchaseOrderId: string) => downloadPurchaseOrderPdf(purchaseOrderId),
+    mutationFn: (purchaseOrderId: string) => downloadPurchaseOrderPdfWithFallback(purchaseOrderId),
   });
 }
 

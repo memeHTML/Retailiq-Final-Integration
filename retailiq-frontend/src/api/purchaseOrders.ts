@@ -74,6 +74,16 @@ export interface PurchaseOrderPdfMetadata {
   path: string;
 }
 
+export class PurchaseOrderPdfDownloadError extends Error {
+  metadata: PurchaseOrderPdfMetadata | null;
+
+  constructor(message: string, metadata: PurchaseOrderPdfMetadata | null = null) {
+    super(message);
+    this.name = 'PurchaseOrderPdfDownloadError';
+    this.metadata = metadata;
+  }
+}
+
 const normalizeString = (value: unknown): string | null => {
   if (value === undefined || value === null || value === '') {
     return null;
@@ -185,6 +195,27 @@ export async function downloadPurchaseOrderPdf(purchaseOrderId: string): Promise
   });
 }
 
+export async function downloadPurchaseOrderPdfWithFallback(purchaseOrderId: string): Promise<Blob> {
+  try {
+    return await downloadPurchaseOrderPdf(purchaseOrderId);
+  } catch (error) {
+    let metadata: PurchaseOrderPdfMetadata | null = null;
+
+    try {
+      metadata = await getPurchaseOrderPdfMetadata(purchaseOrderId);
+    } catch {
+      metadata = null;
+    }
+
+    throw new PurchaseOrderPdfDownloadError(
+      metadata
+        ? 'Purchase order PDF download is temporarily unavailable. A PDF job exists and can be retried.'
+        : 'Purchase order PDF download failed.',
+      metadata,
+    );
+  }
+}
+
 export async function emailPurchaseOrder(purchaseOrderId: string, email: string): Promise<{ message: string }> {
   return apiPost<{ message: string }>(`${PURCHASE_ORDERS_BASE}/${purchaseOrderId}/email`, { email });
 }
@@ -200,5 +231,6 @@ export const purchaseOrdersApi = {
   cancelPurchaseOrder,
   getPurchaseOrderPdfMetadata,
   downloadPurchaseOrderPdf,
+  downloadPurchaseOrderPdfWithFallback,
   emailPurchaseOrder,
 };

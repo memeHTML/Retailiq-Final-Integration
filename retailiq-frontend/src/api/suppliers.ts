@@ -81,6 +81,11 @@ export interface SupplierProductLinkPayload {
   is_preferred_supplier?: boolean;
 }
 
+export interface SupplierProductLinkUpdatePayload {
+  quoted_price?: number;
+  lead_time_days?: number;
+}
+
 export interface SupplierListParams {
   search?: string;
 }
@@ -186,12 +191,11 @@ export async function linkSupplierProduct(
 export async function updateSupplierProductLink(
   supplierId: string,
   productId: number,
-  payload: Partial<SupplierProductLinkPayload>,
+  payload: SupplierProductLinkUpdatePayload,
 ): Promise<{ id: string }> {
   return apiPut<{ id: string }>(`${SUPPLIERS_BASE}/${supplierId}/products/${productId}`, {
     ...(payload.quoted_price !== undefined ? { quoted_price: payload.quoted_price } : {}),
     ...(payload.lead_time_days !== undefined ? { lead_time_days: payload.lead_time_days } : {}),
-    ...(payload.is_preferred_supplier !== undefined ? { is_preferred_supplier: payload.is_preferred_supplier } : {}),
   });
 }
 

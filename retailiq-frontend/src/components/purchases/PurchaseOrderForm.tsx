@@ -41,12 +41,6 @@ const defaultValues: PurchaseOrderFormValues = {
   items: [{ product_id: '', ordered_qty: '1', unit_price: '0' }],
 };
 
-const toLinePayload = (line: PurchaseOrderLineItemValues) => ({
-  product_id: Number(line.product_id),
-  ordered_qty: Number(line.ordered_qty),
-  unit_price: Number(line.unit_price),
-});
-
 const calculateLineTotal = (line: PurchaseOrderLineItemValues) => {
   const quantity = Number(line.ordered_qty || 0);
   const price = Number(line.unit_price || 0);
@@ -60,6 +54,7 @@ export function PurchaseOrderForm({ purchaseOrderId, initialValues, onSuccess, o
   const updateMutation = useUpdatePurchaseOrder();
   const mutation = purchaseOrderId ? updateMutation : createMutation;
   const [values, setValues] = useState<PurchaseOrderFormValues>({ ...defaultValues, ...initialValues });
+  const [formError, setFormError] = useState<string | null>(null);
 
   const suppliersQuery = useSuppliers();
   const productsQuery = useProductsQuery({ page_size: 500 });
@@ -72,29 +67,41 @@ export function PurchaseOrderForm({ purchaseOrderId, initialValues, onSuccess, o
 
   const productOptions = useMemo(() => {
     const products = (productsQuery.data?.data ?? []) as Product[];
+    const linkedProducts = selectedSupplierDetail.data?.sourced_products ?? [];
+    const linkedProductIds = new Set(linkedProducts.map((product) => product.product_id));
+    const selectedLineProductIds = new Set(
+      values.items
+        .map((line) => Number(line.product_id))
+        .filter((value) => Number.isFinite(value) && value > 0),
+    );
+    const allowedIds = linkedProductIds.size
+      ? new Set([...linkedProductIds, ...selectedLineProductIds])
+      : null;
+
     return products
       .filter((product) => {
-        const linkedProducts = selectedSupplierDetail.data?.sourced_products ?? [];
-        if (!linkedProducts.length) {
+        if (!allowedIds) {
           return true;
         }
-        return linkedProducts.some((linked) => linked.product_id === product.product_id);
+        return allowedIds.has(product.product_id);
       })
       .map((product) => ({
         id: String(product.product_id),
         label: `${product.name}${product.sku_code ? ` - ${product.sku_code}` : ''}`,
       }));
-  }, [productsQuery.data, selectedSupplierDetail.data]);
+  }, [productsQuery.data, selectedSupplierDetail.data, values.items]);
 
   const error = mutation.error ? normalizeApiError(mutation.error) : null;
 
   const setField = (key: keyof PurchaseOrderFormValues) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const nextValue = event.target.value;
+    setFormError(null);
     setValues((current) => ({ ...current, [key]: nextValue }));
   };
 
   const setLineField = (index: number, key: keyof PurchaseOrderLineItemValues) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const nextValue = event.target.value;
+    setFormError(null);
     setValues((current) => ({
       ...current,
       items: current.items.map((line, lineIndex) => (lineIndex === index ? { ...line, [key]: nextValue } : line)),
@@ -102,6 +109,7 @@ export function PurchaseOrderForm({ purchaseOrderId, initialValues, onSuccess, o
   };
 
   const addLine = () => {
+    setFormError(null);
     setValues((current) => ({
       ...current,
       items: [...current.items, { product_id: '', ordered_qty: '1', unit_price: '0' }],
@@ -109,6 +117,7 @@ export function PurchaseOrderForm({ purchaseOrderId, initialValues, onSuccess, o
   };
 
   const removeLine = (index: number) => {
+    setFormError(null);
     setValues((current) => ({
       ...current,
       items: current.items.length === 1 ? current.items : current.items.filter((_, lineIndex) => lineIndex !== index),
@@ -117,41 +126,64 @@ export function PurchaseOrderForm({ purchaseOrderId, initialValues, onSuccess, o
 
   const updateFromSupplier = (event: ChangeEvent<HTMLSelectElement>) => {
     const supplierId = event.target.value;
+    setFormError(null);
     setValues((current) => ({
       ...current,
       supplier_id: supplierId,
     }));
   };
 
-  useEffect(() => {
-    if (!selectedSupplierDetail.data) {
-      return;
-    }
+  const linkedProductIds = useMemo(
+    () => new Set((selectedSupplierDetail.data?.sourced_products ?? []).map((product) => product.product_id)),
+    [selectedSupplierDetail.data],
+  );
 
-    const linked = new Set(selectedSupplierDetail.data.sourced_products.map((product) => product.product_id));
-    if (!linked.size) {
-      return;
-    }
-
-    setValues((current) => ({
-      ...current,
-      items: current.items.map((line) =>
-        line.product_id && linked.has(Number(line.product_id))
-          ? line
-          : { ...line, product_id: linked.has(Number(line.product_id)) ? line.product_id : '' },
-      ),
-    }));
-  }, [selectedSupplierDetail.data]);
+  const unlinkedLineItems = useMemo(
+    () =>
+      values.items
+        .map((line, index) => ({ line, index }))
+        .filter(({ line }) => Boolean(line.product_id) && linkedProductIds.size > 0 && !linkedProductIds.has(Number(line.product_id))),
+    [linkedProductIds, values.items],
+  );
 
   const subtotal = values.items.reduce((sum, line) => sum + calculateLineTotal(line), 0);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setFormError(null);
+
+    if (!values.supplier_id) {
+      setFormError('Please select a supplier.');
+      return;
+    }
+
+    const normalizedItems = values.items.map((line) => ({
+      product_id: Number(line.product_id),
+      ordered_qty: Number(line.ordered_qty),
+      unit_price: Number(line.unit_price),
+    }));
+
+    if (
+      normalizedItems.length === 0 ||
+      normalizedItems.some(
+        (line) =>
+          !Number.isFinite(line.product_id) ||
+          line.product_id <= 0 ||
+          !Number.isFinite(line.ordered_qty) ||
+          line.ordered_qty <= 0 ||
+          !Number.isFinite(line.unit_price) ||
+          line.unit_price < 0,
+      )
+    ) {
+      setFormError('Each line item must have a product, quantity greater than zero, and a valid unit price.');
+      return;
+    }
+
     const payloadBase = {
       supplier_id: values.supplier_id,
       expected_delivery_date: values.expected_delivery_date || undefined,
       notes: values.notes || undefined,
-      items: values.items.map(toLinePayload).filter((line) => Boolean(line.product_id) && Number.isFinite(line.ordered_qty) && Number.isFinite(line.unit_price)),
+      items: normalizedItems,
     };
 
     try {
@@ -183,6 +215,21 @@ export function PurchaseOrderForm({ purchaseOrderId, initialValues, onSuccess, o
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error ? <ErrorState error={error as ApiError} onRetry={() => mutation.reset()} /> : null}
+      {formError ? (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          {formError}
+          {unlinkedLineItems.length > 0 ? (
+            <div className="mt-1">
+              Warning: {unlinkedLineItems.length} selected line item{unlinkedLineItems.length === 1 ? '' : 's'} are not currently linked to the chosen supplier.
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {!formError && unlinkedLineItems.length > 0 ? (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          Warning: {unlinkedLineItems.length} selected line item{unlinkedLineItems.length === 1 ? '' : 's'} are not currently linked to the chosen supplier.
+        </div>
+      ) : null}
       <Card>
         <CardHeader>
           <CardTitle>{purchaseOrderId ? 'Edit Purchase Order' : 'Create Purchase Order'}</CardTitle>

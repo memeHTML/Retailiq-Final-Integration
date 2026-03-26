@@ -10,39 +10,45 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
-import { usePurchaseOrder, usePurchaseOrders, useSendPurchaseOrder, useCancelPurchaseOrder, getPurchaseOrderStatusText, getPurchaseOrderStatusColor, canEditPurchaseOrder, canSendPurchaseOrder, canCancelPurchaseOrder } from '@/hooks/purchaseOrders';
-import { useSuppliers } from '@/hooks/suppliers';
+import { PurchaseOrderPdfRecovery } from '@/components/shared/PurchaseOrderPdfRecovery';
+import {
+  canCancelPurchaseOrder,
+  canEditPurchaseOrder,
+  canSendPurchaseOrder,
+  getPurchaseOrderStatusColor,
+  getPurchaseOrderStatusText,
+  useCancelPurchaseOrder,
+  usePurchaseOrderHydration,
+  usePurchaseOrders,
+  useSendPurchaseOrder,
+} from '@/hooks/purchaseOrders';
+import { useSupplierHydration, useSuppliers } from '@/hooks/suppliers';
 import { uiStore } from '@/stores/uiStore';
 import { normalizeApiError } from '@/utils/errors';
 import { formatCurrency } from '@/utils/numbers';
 import type { ApiError } from '@/types/api';
-import type { PurchaseOrderListItem } from '@/api/purchaseOrders';
-
-function OrderTotalsCell({ purchaseOrderId }: { purchaseOrderId: string }) {
-  const { data } = usePurchaseOrder(purchaseOrderId);
-  if (!data) {
-    return <span>…</span>;
-  }
-
-  const total = data.items.reduce((sum, item) => sum + item.ordered_qty * item.unit_price, 0);
-  return (
-    <span>
-      {data.items.length} item{data.items.length === 1 ? '' : 's'} · {formatCurrency(total)}
-    </span>
-  );
-}
+import type { PurchaseOrderListItem, PurchaseOrderPdfMetadata } from '@/api/purchaseOrders';
 
 export default function PurchaseOrdersPage() {
   const navigate = useNavigate();
   const addToast = uiStore((state) => state.addToast);
   const { data, isLoading, error, refetch } = usePurchaseOrders();
   const { data: suppliers } = useSuppliers();
+  const orderIds = useMemo(() => (data ?? []).map((purchaseOrder) => purchaseOrder.id), [data]);
+  const supplierIds = useMemo(() => (data ?? []).map((purchaseOrder) => purchaseOrder.supplier_id), [data]);
+  const { purchaseOrderDetails, isHydrating: ordersHydrating } = usePurchaseOrderHydration(orderIds);
+  const { supplierDetails, isHydrating: suppliersHydrating } = useSupplierHydration(supplierIds);
   const sendMutation = useSendPurchaseOrder();
   const cancelMutation = useCancelPurchaseOrder();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sendTarget, setSendTarget] = useState<PurchaseOrderListItem | null>(null);
   const [cancelTarget, setCancelTarget] = useState<PurchaseOrderListItem | null>(null);
+  const [pdfRecovery, setPdfRecovery] = useState<{
+    purchaseOrderId: string;
+    metadata: PurchaseOrderPdfMetadata | null;
+    errorMessage: string;
+  } | null>(null);
 
   const supplierMap = useMemo(
     () => new Map((suppliers ?? []).map((supplier) => [supplier.id, supplier.name])),
@@ -60,20 +66,33 @@ export default function PurchaseOrdersPage() {
       if (!needle) {
         return true;
       }
-      const supplierName = supplierMap.get(po.supplier_id) ?? po.supplier_id;
+      const supplierName = supplierDetails[po.supplier_id]?.name ?? supplierMap.get(po.supplier_id) ?? po.supplier_id;
       return [po.id, supplierName, po.status].join(' ').toLowerCase().includes(needle);
     });
-  }, [data, search, statusFilter, supplierMap]);
+  }, [data, search, statusFilter, supplierDetails, supplierMap]);
 
   const handleDownload = async (poId: string) => {
-    const { downloadPurchaseOrderPdf } = await import('@/api/purchaseOrders');
-    const blob = await downloadPurchaseOrderPdf(poId);
-    const url = window.URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `purchase-order-${poId}.pdf`;
-    anchor.click();
-    window.URL.revokeObjectURL(url);
+    const { downloadPurchaseOrderPdfWithFallback, PurchaseOrderPdfDownloadError } = await import('@/api/purchaseOrders');
+
+    try {
+      const blob = await downloadPurchaseOrderPdfWithFallback(poId);
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `purchase-order-${poId}.pdf`;
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+      setPdfRecovery(null);
+    } catch (error) {
+      const metadata = error instanceof PurchaseOrderPdfDownloadError ? error.metadata : null;
+      setPdfRecovery({
+        purchaseOrderId: poId,
+        metadata,
+        errorMessage: metadata
+          ? `PDF job ${metadata.job_id} exists, but the file download is temporarily unavailable.`
+          : 'Unable to download the purchase order PDF right now.',
+      });
+    }
   };
 
   const handleSend = async () => {
@@ -192,7 +211,15 @@ export default function PurchaseOrdersPage() {
                 {
                   key: 'supplier',
                   header: 'Supplier',
-                  render: (po) => supplierMap.get(po.supplier_id) ?? po.supplier_id,
+                  render: (po) => {
+                    const supplierDetail = supplierDetails[po.supplier_id];
+                    if (!supplierDetail) {
+                      const fallback = supplierMap.get(po.supplier_id) ?? '—';
+                      return <span>{suppliersHydrating ? 'Loading…' : fallback}</span>;
+                    }
+
+                    return <span>{supplierDetail.name}</span>;
+                  },
                 },
                 {
                   key: 'status',
@@ -207,7 +234,19 @@ export default function PurchaseOrdersPage() {
                 {
                   key: 'items',
                   header: 'Items / Total',
-                  render: (po) => <OrderTotalsCell purchaseOrderId={po.id} />,
+                  render: (po) => {
+                    const purchaseOrderDetail = purchaseOrderDetails[po.id];
+                    if (!purchaseOrderDetail) {
+                      return <span>{ordersHydrating ? 'Loading…' : '—'}</span>;
+                    }
+
+                    const total = purchaseOrderDetail.items.reduce((sum, item) => sum + item.ordered_qty * item.unit_price, 0);
+                    return (
+                      <span>
+                        {purchaseOrderDetail.items.length} item{purchaseOrderDetail.items.length === 1 ? '' : 's'} · {formatCurrency(total)}
+                      </span>
+                    );
+                  },
                 },
                 {
                   key: 'created',
@@ -266,6 +305,19 @@ export default function PurchaseOrdersPage() {
         destructive
         onConfirm={handleCancel}
         onCancel={() => setCancelTarget(null)}
+      />
+
+      <PurchaseOrderPdfRecovery
+        open={Boolean(pdfRecovery)}
+        purchaseOrderId={pdfRecovery?.purchaseOrderId ?? ''}
+        metadata={pdfRecovery?.metadata ?? null}
+        errorMessage={pdfRecovery?.errorMessage ?? 'Unable to download the purchase order PDF right now.'}
+        onRetry={() => {
+          if (pdfRecovery) {
+            void handleDownload(pdfRecovery.purchaseOrderId);
+          }
+        }}
+        onClose={() => setPdfRecovery(null)}
       />
     </PageFrame>
   );
