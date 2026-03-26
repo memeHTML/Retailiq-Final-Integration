@@ -61,6 +61,7 @@ export interface ApiError {
   status: number | undefined;
   fields?: Record<string, string>;
   correlationId?: string;
+  raw?: unknown;
 }
 
 export function isApiError(error: unknown): error is ApiError {

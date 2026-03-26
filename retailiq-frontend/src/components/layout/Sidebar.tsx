@@ -1,6 +1,30 @@
 import type { ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BarChart3, Boxes, BrainCircuit, Building2, ChevronLeft, ChevronRight, CircleDollarSign, CreditCard, FileText, FolderKanban, Globe2, LayoutDashboard, Megaphone, PackageSearch, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Sparkles, Store, Users, Webhook, Zap } from 'lucide-react';
+import {
+  BarChart3,
+  Boxes,
+  BrainCircuit,
+  Building2,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  CircleDollarSign,
+  CreditCard,
+  FileText,
+  FolderKanban,
+  Globe2,
+  LayoutDashboard,
+  Megaphone,
+  ReceiptText,
+  RotateCcw,
+  ShieldCheck,
+  ShoppingCart,
+  Sparkles,
+  Store,
+  Users,
+  Webhook,
+  Zap,
+} from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { uiStore } from '@/stores/uiStore';
 import { authStore } from '@/stores/authStore';
@@ -23,18 +47,18 @@ const navGroups: NavGroup[] = [
     title: 'Dashboard',
     items: [
       { label: 'Overview', to: routes.dashboard, icon: LayoutDashboard },
-      { label: 'Smart Alerts', to: '/alerts', icon: Sparkles },
-      { label: 'Reports', to: '/reports', icon: FileText },
-      { label: 'Financial Calendar', to: '/financial-calendar', icon: CalendarIcon },
+      { label: 'Smart Alerts', to: routes.smartAlerts, icon: Sparkles },
+      { label: 'Reports', to: routes.reports, icon: FileText },
+      { label: 'Financial Calendar', to: routes.financialCalendar, icon: CalendarClock },
     ],
   },
   {
     title: 'Inventory',
     items: [
       { label: 'Products', to: routes.inventory, icon: Boxes },
-      { label: 'Stock Audit', to: '/inventory/stock-audit', icon: ShieldCheck },
-      { label: 'Receipts & Barcodes', to: '/receipts/queue', icon: ReceiptText },
-      { label: 'Vision OCR', to: routes.vision, icon: ScanIcon },
+      { label: 'Stock Audit', to: routes.stockAudit, icon: ShieldCheck },
+      { label: 'Receipts & Barcodes', to: routes.receiptsQueue, icon: ReceiptText },
+      { label: 'Vision OCR', to: routes.visionOcr, icon: Boxes },
       { label: 'Pricing', to: routes.pricing, icon: CircleDollarSign, ownerOnly: true },
       { label: 'Forecasting', to: routes.forecasting, icon: BarChart3, ownerOnly: true },
     ],
@@ -42,10 +66,10 @@ const navGroups: NavGroup[] = [
   {
     title: 'Orders',
     items: [
-      { label: 'POS / New Sale', to: '/pos', icon: ShoppingCart },
+      { label: 'POS / New Sale', to: routes.pos, icon: ShoppingCart },
       { label: 'Transactions', to: routes.transactions, icon: FileText },
-      { label: 'Returns', to: '/returns', icon: RotateIcon },
-      { label: 'Purchase Orders', to: '/purchase-orders', icon: FolderKanban },
+      { label: 'Returns', to: routes.returns, icon: RotateCcw },
+      { label: 'Purchase Orders', to: routes.purchaseOrders, icon: FolderKanban },
       { label: 'Suppliers', to: routes.suppliers, icon: Store },
       { label: 'Marketplace', to: routes.marketplace, icon: Building2 },
     ],
@@ -63,7 +87,7 @@ const navGroups: NavGroup[] = [
     title: 'Analytics',
     items: [
       { label: 'Business Analytics', to: routes.analytics, icon: BarChart3, ownerOnly: true },
-      { label: 'Market Intelligence', to: '/market-intelligence', icon: Megaphone, ownerOnly: true },
+      { label: 'Market Intelligence', to: routes.marketIntelligence, icon: Megaphone, ownerOnly: true },
       { label: 'Decisions', to: routes.decisions, icon: BrainCircuit, ownerOnly: true },
       { label: 'Staff Performance', to: routes.staff, icon: Users },
       { label: 'Offline Data', to: routes.offline, icon: Globe2 },
@@ -83,12 +107,13 @@ const navGroups: NavGroup[] = [
       { label: 'Chain Management', to: routes.chain, icon: Store },
       { label: 'Developer Platform', to: routes.developer, icon: Zap },
       { label: 'KYC', to: routes.kyc, icon: ShieldCheck },
+      { label: 'Operations', to: routes.operations, icon: Building2 },
     ],
   },
   {
     title: 'Settings',
     items: [
-      { label: 'Store Profile', to: routes.settings, icon: Store, ownerOnly: true },
+      { label: 'Store Profile', to: routes.storeProfile, icon: Store, ownerOnly: true },
       { label: 'i18n', to: routes.i18n, icon: Globe2 },
     ],
   },
@@ -96,16 +121,8 @@ const navGroups: NavGroup[] = [
 
 const calendarDays = [1, 2, 3, 4, 5, 6];
 
-function CalendarIcon({ className }: { className?: string }) {
-  return <span className={className}>31</span>;
-}
-
 function ScanIcon({ className }: { className?: string }) {
   return <span className={className}>OCR</span>;
-}
-
-function RotateIcon({ className }: { className?: string }) {
-  return <span className={className}>↺</span>;
 }
 
 export function sidebarNavGroups(role: 'owner' | 'staff' | null) {
@@ -149,7 +166,7 @@ export function Sidebar() {
                     to={item.to}
                     className={({ isActive }) => cn('sidebar__item', isActive && 'sidebar__item--active')}
                   >
-                    <Icon className="sidebar__item-icon" />
+                    {item.label === 'Vision OCR' ? <ScanIcon className="sidebar__item-icon" /> : <Icon className="sidebar__item-icon" />}
                     {!collapsed ? <span>{item.label}</span> : null}
                   </NavLink>
                 );

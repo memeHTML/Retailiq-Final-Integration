@@ -115,6 +115,7 @@ export function normalizeApiError(error: unknown): ApiError {
       status: response?.status ?? axiosError.status,
       fields: extractFields(payload),
       correlationId: correlationId ? String(correlationId) : undefined,
+      raw: payload ?? axiosError.toJSON(),
     };
   }
 
@@ -126,12 +127,14 @@ export function normalizeApiError(error: unknown): ApiError {
       status: typeof candidate.status === 'number' ? candidate.status : undefined,
       fields: rawFields && typeof rawFields === 'object' ? Object.fromEntries(Object.entries(rawFields as Record<string, unknown>).map(([key, value]) => [key, String(value)])) : undefined,
       correlationId: typeof candidate.correlationId === 'string' ? candidate.correlationId : undefined,
+      raw: candidate,
     };
   }
 
   return {
     message: extractMessage(error),
     status: undefined,
+    raw: error,
   };
 }
 

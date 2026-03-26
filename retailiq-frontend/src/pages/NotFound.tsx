@@ -5,6 +5,7 @@
  */
 import { Link } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
+import { routes } from '@/routes/routes';
 
 export default function NotFoundPage() {
   return (
@@ -12,7 +13,7 @@ export default function NotFoundPage() {
       <section className="card">
         <div className="card__body stack">
           <p className="muted">Please check the URL or return to the dashboard.</p>
-          <Link className="button" to="/dashboard">Go to Dashboard</Link>
+          <Link className="button" to={routes.dashboard}>Go to Dashboard</Link>
         </div>
       </section>
     </PageFrame>

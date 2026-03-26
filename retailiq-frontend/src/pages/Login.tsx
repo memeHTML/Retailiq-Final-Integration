@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthShell } from '@/components/layout/AuthShell';
+import { routes } from '@/routes/routes';
 import { loginSchema, type LoginFormValues } from '@/types/schemas';
 import { useLoginMutation } from '@/hooks/auth';
 import { normalizeApiError } from '@/utils/errors';
@@ -49,15 +50,15 @@ export default function LoginPage() {
           store_id: result.store_id ?? null,
         });
         addToast({ title: 'Welcome back', message: 'You are now signed in.', variant: 'success' });
-        navigate(searchParams.get('redirect') || '/dashboard', { replace: true });
+        navigate(searchParams.get('redirect') || routes.dashboard, { replace: true });
         return;
       }
 
       if (result.requires_otp || result.message) {
-        const redirect = searchParams.get('redirect') || '/dashboard';
+        const redirect = searchParams.get('redirect') || routes.dashboard;
         const identifier = mode === 'otp' ? values.email : values.mobile_number;
         addToast({ title: 'OTP sent', message: result.message ?? 'A verification code was sent.', variant: 'success' });
-        navigate(`/verify-otp?${mode === 'otp' ? 'email' : 'mobile_number'}=${encodeURIComponent(identifier ?? '')}&redirect=${encodeURIComponent(redirect)}`, {
+        navigate(`${routes.verifyOtp}?${mode === 'otp' ? 'email' : 'mobile_number'}=${encodeURIComponent(identifier ?? '')}&redirect=${encodeURIComponent(redirect)}`, {
           replace: true,
           state: { [mode === 'otp' ? 'email' : 'mobile_number']: identifier },
         });
@@ -68,13 +69,13 @@ export default function LoginPage() {
     } catch (error) {
       const apiError = normalizeApiError(error);
       if (apiError.status === 503) {
-        const redirect = searchParams.get('redirect') || '/dashboard';
+        const redirect = searchParams.get('redirect') || routes.dashboard;
         addToast({
           title: 'Verification pending',
           message: OTP_DELIVERY_RECOVERY_MESSAGE,
           variant: 'warning',
         });
-        navigate(`/verify-otp?email=${encodeURIComponent(values.email ?? '')}&redirect=${encodeURIComponent(redirect)}`, {
+        navigate(`${routes.verifyOtp}?email=${encodeURIComponent(values.email ?? '')}&redirect=${encodeURIComponent(redirect)}`, {
           replace: true,
           state: {
             email: values.email,
@@ -137,7 +138,7 @@ export default function LoginPage() {
           </button>
         </div>
         <p className="muted">
-          Need an account? <button className="button button--ghost" type="button" onClick={() => navigate('/register')} style={{ padding: 0, border: 'none', background: 'transparent' }}>Register</button>
+          Need an account? <button className="button button--ghost" type="button" onClick={() => navigate(routes.register)} style={{ padding: 0, border: 'none', background: 'transparent' }}>Register</button>
         </p>
       </form>
     </AuthShell>

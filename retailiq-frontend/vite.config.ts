@@ -11,8 +11,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   
   // Only configure proxy if backend URL is provided
-  const backendUrl = env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
-  const enableProxy = Boolean(env.VITE_API_BASE_URL);
+  const backendUrl = env.VITE_API_URL || env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
+  const enableProxy = Boolean(env.VITE_API_URL || env.VITE_API_BASE_URL);
 
   return {
     plugins: [react()],

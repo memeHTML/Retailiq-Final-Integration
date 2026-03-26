@@ -146,12 +146,18 @@ const requestRefreshToken = async (): Promise<AuthTokens | null> => {
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = authStore.getState().accessToken;
+  const headers = config.headers instanceof AxiosHeaders ? config.headers : AxiosHeaders.from(config.headers ?? {});
+
   if (token) {
-    const headers = config.headers instanceof AxiosHeaders ? config.headers : AxiosHeaders.from(config.headers ?? {});
     headers.set('Authorization', `Bearer ${token}`);
-    config.headers = headers;
   }
 
+  if (isFormData(config.data)) {
+    headers.delete('Content-Type');
+    headers.set('Accept', 'application/json');
+  }
+
+  config.headers = headers;
   return config;
 });
 
@@ -167,13 +173,6 @@ apiClient.interceptors.response.use(
 
     if (axiosError.response?.status === 401 && originalRequest && !originalRequest._retry && !shouldSkipRefresh(originalRequest.url)) {
       originalRequest._retry = true;
-
-      if (isFormData(originalRequest.data)) {
-        authStore.getState().clearAuth();
-        clearStoredRefreshToken();
-        redirectToLogin();
-        return Promise.reject(axiosError.response.data ?? error);
-      }
 
       try {
         if (!refreshPromise) {
@@ -262,7 +261,16 @@ export async function requestBlob(config: AxiosRequestConfig): Promise<Blob> {
 }
 
 export async function postForm<T>(url: string, data: FormData, config: AxiosRequestConfig = {}): Promise<T> {
-  return request<T>({ ...config, url, method: 'POST', data });
+  return request<T>({
+    ...config,
+    url,
+    method: 'POST',
+    data,
+    headers: {
+      ...(config.headers ?? {}),
+      Accept: 'application/json',
+    },
+  });
 }
 
 export const apiGet = <T>(url: string, params?: unknown, config: AxiosRequestConfig = {}) =>

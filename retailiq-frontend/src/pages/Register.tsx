@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { AuthShell } from '@/components/layout/AuthShell';
+import { routes } from '@/routes/routes';
 import { registerSchema, type RegisterFormValues } from '@/types/schemas';
 import { useRegisterMutation } from '@/hooks/auth';
 import { normalizeApiError } from '@/utils/errors';
@@ -38,7 +39,7 @@ export default function RegisterPage() {
     setServerMessage(null);
     try {
       const result = await registerMutation.mutateAsync(values);
-      const otpPath = `/verify-otp?email=${encodeURIComponent(values.email)}&redirect=${encodeURIComponent('/dashboard')}`;
+      const otpPath = `${routes.verifyOtp}?email=${encodeURIComponent(values.email)}&redirect=${encodeURIComponent(routes.dashboard)}`;
       clearSession();
       addToast({ title: 'Registration started', message: result.message, variant: 'success' });
       navigate(otpPath, {
@@ -48,7 +49,7 @@ export default function RegisterPage() {
     } catch (error) {
       const apiError = normalizeApiError(error);
       if (apiError.status === 503) {
-        const otpPath = `/verify-otp?email=${encodeURIComponent(values.email)}&redirect=${encodeURIComponent('/dashboard')}`;
+        const otpPath = `${routes.verifyOtp}?email=${encodeURIComponent(values.email)}&redirect=${encodeURIComponent(routes.dashboard)}`;
         clearSession();
         addToast({
           title: 'Account created',
@@ -121,7 +122,7 @@ export default function RegisterPage() {
           <button className="button" type="submit" disabled={isSubmitting || registerMutation.isPending}>
             {isSubmitting || registerMutation.isPending ? 'Creating account…' : 'Create account'}
           </button>
-          <button className="button button--ghost" type="button" onClick={() => navigate('/login')}>
+          <button className="button button--ghost" type="button" onClick={() => navigate(routes.login)}>
             Back to login
           </button>
         </div>

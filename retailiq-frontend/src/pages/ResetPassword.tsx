@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthShell } from '@/components/layout/AuthShell';
+import { routes } from '@/routes/routes';
 import { resetPasswordSchema, type ResetPasswordFormValues } from '@/types/schemas';
 import { useResetPasswordMutation } from '@/hooks/auth';
 import { normalizeApiError } from '@/utils/errors';
@@ -31,7 +32,7 @@ export default function ResetPasswordPage() {
     try {
       const result = await resetPasswordMutation.mutateAsync(values);
       addToast({ title: 'Password updated', message: result.message, variant: 'success' });
-      navigate('/login', { replace: true });
+      navigate(routes.login, { replace: true });
     } catch (error) {
       const apiError = normalizeApiError(error);
       if (apiError.status === 422) {
@@ -60,7 +61,7 @@ export default function ResetPasswordPage() {
           <button className="button" type="submit" disabled={isSubmitting || resetPasswordMutation.isPending}>
             {isSubmitting || resetPasswordMutation.isPending ? 'Updating…' : 'Update password'}
           </button>
-          <button className="button button--ghost" type="button" onClick={() => navigate('/login')}>
+          <button className="button button--ghost" type="button" onClick={() => navigate(routes.login)}>
             Back to login
           </button>
         </div>

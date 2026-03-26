@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthShell } from '@/components/layout/AuthShell';
+import { routes } from '@/routes/routes';
 import { verifyOtpSchema, type VerifyOtpFormValues } from '@/types/schemas';
 import { useResendOtpMutation, useVerifyOtpMutation } from '@/hooks/auth';
 import { normalizeApiError } from '@/utils/errors';
@@ -23,7 +24,7 @@ export default function VerifyOtpPage() {
   const email = locationState?.email ?? searchParams.get('email') ?? '';
   const mobileNumber = locationState?.mobile_number ?? searchParams.get('mobile_number') ?? '';
   const identifier = email || mobileNumber;
-  const redirect = searchParams.get('redirect') ?? '/dashboard';
+  const redirect = searchParams.get('redirect') ?? routes.dashboard;
   const addToast = uiStore((state) => state.addToast);
   const verifyOtpMutation = useVerifyOtpMutation();
   const resendOtpMutation = useResendOtpMutation();
@@ -108,7 +109,7 @@ export default function VerifyOtpPage() {
           <button className="button button--secondary" type="button" onClick={resendOtp} disabled={resendOtpMutation.isPending || !identifier}>
             Resend OTP
           </button>
-          <button className="button button--ghost" type="button" onClick={() => navigate('/login')}>
+          <button className="button button--ghost" type="button" onClick={() => navigate(routes.login)}>
             Back to login
           </button>
         </div>

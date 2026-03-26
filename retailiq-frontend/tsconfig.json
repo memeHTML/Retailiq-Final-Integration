@@ -20,6 +20,7 @@
     "paths": {
       "@/router": ["src/router.tsx"],
       "@/routes/*": ["src/routes/*"],
+      "@/lib/*": ["src/lib/*"],
       "@/api/*": ["src/api/*"],
       "@/hooks/*": ["src/hooks/*"],
       "@/stores/*": ["src/stores/*"],

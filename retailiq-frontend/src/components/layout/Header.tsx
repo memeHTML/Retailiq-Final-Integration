@@ -1,31 +1,60 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, Menu, Search, UserCircle2 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/DropdownMenu';
 import { authStore } from '@/stores/authStore';
+import { uiStore } from '@/stores/uiStore';
+import { useStoreProfileQuery } from '@/hooks/store';
 import { cn } from '@/utils/cn';
 import { routes } from '@/routes/routes';
-
-const titleMap: Record<string, string> = {
-  [routes.dashboard]: 'Dashboard',
-  [routes.inventory]: 'Inventory',
-  [routes.transactions]: 'Transactions',
-  [routes.customers]: 'Customers',
-  [routes.analytics]: 'Analytics',
-  [routes.finance]: 'Financials',
-  [routes.settings]: 'Store Profile',
-  [routes.pricing]: 'Pricing',
-  [routes.decisions]: 'Decisions',
-  [routes.kyc]: 'KYC',
-  [routes.developer]: 'Developer',
-};
 
 interface HeaderProps {
   onOpenPalette: () => void;
 }
 
+const routeTitles: Record<string, string> = {
+  [routes.dashboard]: 'Dashboard',
+  [routes.smartAlerts]: 'Smart Alerts',
+  [routes.reports]: 'Reports',
+  [routes.financialCalendar]: 'Financial Calendar',
+  [routes.inventory]: 'Inventory',
+  [routes.transactions]: 'Transactions',
+  [routes.returns]: 'Returns',
+  [routes.customers]: 'Customers',
+  [routes.analytics]: 'Analytics',
+  [routes.finance]: 'Financials',
+  [routes.storeProfile]: 'Store Profile',
+  [routes.storeCategories]: 'Store Categories',
+  [routes.storeTaxConfig]: 'Tax Config',
+  [routes.pricing]: 'Pricing',
+  [routes.decisions]: 'Decisions',
+  [routes.kyc]: 'KYC',
+  [routes.developer]: 'Developer',
+  [routes.operations]: 'Operations',
+  [routes.suppliers]: 'Suppliers',
+  [routes.purchaseOrders]: 'Purchase Orders',
+  [routes.marketIntelligence]: 'Market Intelligence',
+  [routes.einvoice]: 'E-Invoicing',
+  [routes.ai]: 'AI Assistant',
+  [routes.loyalty]: 'Loyalty',
+  [routes.credit]: 'Credit',
+  [routes.forecasting]: 'Forecasting',
+  [routes.pos]: 'POS',
+  [routes.stockAudit]: 'Stock Audit',
+};
+
+type Breadcrumb = {
+  label: string;
+  to: string;
+};
+
 export function Header({ onOpenPalette }: HeaderProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const user = authStore((state) => state.user);
+  const mobileNavOpen = uiStore((state) => state.mobileNavOpen);
+  const toggleMobileNav = uiStore((state) => state.toggleMobileNav);
+  const storeProfileQuery = useStoreProfileQuery();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -37,30 +66,66 @@ export function Header({ onOpenPalette }: HeaderProps) {
 
   const title = useMemo(() => {
     const pathname = location.pathname;
-    if (pathname.startsWith('/store')) return 'Store Profile';
-    if (pathname.startsWith('/inventory')) return 'Inventory';
-    if (pathname.startsWith('/suppliers')) return 'Suppliers';
-    if (pathname.startsWith('/purchase-orders')) return 'Purchase Orders';
-    if (pathname.startsWith('/transactions')) return 'Transactions';
-    if (pathname.startsWith('/customers')) return 'Customers';
-    if (pathname.startsWith('/staff-performance')) return 'Staff Performance';
-    if (pathname.startsWith('/market-intelligence')) return 'Market Intelligence';
-    if (pathname.startsWith('/e-invoicing')) return 'E-Invoicing';
-    if (pathname.startsWith('/ai-assistant')) return 'AI Assistant';
-    if (pathname.startsWith('/financial-calendar')) return 'Financial Calendar';
+    if (pathname.startsWith(routes.storeCategories)) return 'Store Categories';
+    if (pathname.startsWith(routes.storeTaxConfig)) return 'Tax Config';
+    if (pathname.startsWith(routes.storeProfile)) return 'Store Profile';
+    if (pathname.startsWith(routes.inventory)) return 'Inventory';
+    if (pathname.startsWith(routes.suppliers)) return 'Suppliers';
+    if (pathname.startsWith(routes.purchaseOrders)) return 'Purchase Orders';
+    if (pathname.startsWith(routes.transactions)) return 'Transactions';
+    if (pathname.startsWith(routes.returns)) return 'Returns';
+    if (pathname.startsWith(routes.customers)) return 'Customers';
+    if (pathname.startsWith(routes.staff)) return 'Staff Performance';
+    if (pathname.startsWith(routes.marketIntelligence)) return 'Market Intelligence';
+    if (pathname.startsWith(routes.einvoice)) return 'E-Invoicing';
+    if (pathname.startsWith(routes.ai)) return 'AI Assistant';
+    if (pathname.startsWith(routes.financialCalendar)) return 'Financial Calendar';
+    if (pathname.startsWith(routes.operations)) return 'Operations';
+
     const path = `/${pathname.split('/').filter(Boolean)[0] ?? 'dashboard'}`;
-    return titleMap[path] ?? 'RetailIQ';
+    return routeTitles[path] ?? 'RetailIQ';
   }, [location.pathname]);
+
+  const breadcrumbs = useMemo(() => {
+    const chain: Breadcrumb[] = [{ label: 'RetailIQ', to: routes.dashboard }];
+    if (title !== 'RetailIQ') {
+      chain.push({ label: title, to: location.pathname });
+    }
+
+    return chain;
+  }, [location.pathname, title]);
+
+  const handleLogout = () => {
+    authStore.getState().clearAuth();
+    navigate(routes.login, { replace: true });
+  };
 
   return (
     <header className={cn('header', scrolled && 'header--scrolled')}>
       <div className="header__title">
-        <button className="header__menu" type="button" aria-label="Open navigation">
+        <button
+          className="header__menu"
+          type="button"
+          aria-label="Open navigation"
+          aria-expanded={mobileNavOpen}
+          onClick={toggleMobileNav}
+        >
           <Menu size={18} />
         </button>
-        <div>
+        <div className="header__title-stack">
           <div className="header__eyebrow">Retail operations</div>
+          <nav className="header__breadcrumbs" aria-label="Breadcrumb">
+            {breadcrumbs.map((crumb, index) => (
+              <span key={crumb.label} className="header__breadcrumb-group">
+                <span className={cn('header__breadcrumb', index === breadcrumbs.length - 1 && 'header__breadcrumb--current')}>
+                  {crumb.label}
+                </span>
+                {index < breadcrumbs.length - 1 ? <span className="header__breadcrumb-separator">/</span> : null}
+              </span>
+            ))}
+          </nav>
           <h1>{title}</h1>
+          <div className="header__store">{storeProfileQuery.data?.store_name ?? user?.mobile_number ?? 'RetailIQ'}</div>
         </div>
       </div>
 
@@ -75,13 +140,30 @@ export function Header({ onOpenPalette }: HeaderProps) {
           <Bell size={18} />
           <span className="header__badge">3</span>
         </button>
-        <div className="header__user">
-          <UserCircle2 size={18} />
-          <div>
-            <div className="header__user-name">{user?.full_name ?? user?.email ?? 'Retail user'}</div>
-            <div className="header__user-role">{user?.role ?? 'staff'}</div>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="header__user" aria-label="Open user menu">
+              <UserCircle2 size={18} />
+              <div>
+                <div className="header__user-name">{user?.full_name ?? user?.email ?? 'Retail user'}</div>
+                <div className="header__user-role">{user?.role ?? 'staff'}</div>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>
+              <div className="space-y-1">
+                <div>{user?.full_name ?? 'Retail user'}</div>
+                <div className="text-xs font-normal text-text-muted">{storeProfileQuery.data?.store_name ?? 'RetailIQ'}</div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate(routes.storeProfile)}>Store profile</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate(routes.dashboard)}>Dashboard</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={handleLogout}>Log out</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

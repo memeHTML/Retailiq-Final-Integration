@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { AuthShell } from '@/components/layout/AuthShell';
+import { routes } from '@/routes/routes';
 import { forgotPasswordSchema, type ForgotPasswordFormValues } from '@/types/schemas';
 import { useForgotPasswordMutation } from '@/hooks/auth';
 import { normalizeApiError } from '@/utils/errors';
@@ -30,7 +31,7 @@ export default function ForgotPasswordPage() {
       const result = await forgotPasswordMutation.mutateAsync(values);
       addToast({ title: 'Reset request sent', message: result.message, variant: 'success' });
       if (result.token) {
-        navigate(`/reset-password?token=${encodeURIComponent(result.token)}`, { replace: true });
+        navigate(`${routes.resetPassword}?token=${encodeURIComponent(result.token)}`, { replace: true });
         return;
       }
       setServerMessage(result.message);
@@ -62,7 +63,7 @@ export default function ForgotPasswordPage() {
           <button className="button" type="submit" disabled={isSubmitting || forgotPasswordMutation.isPending}>
             {isSubmitting || forgotPasswordMutation.isPending ? 'Sending…' : 'Send reset link'}
           </button>
-          <button className="button button--ghost" type="button" onClick={() => navigate('/login')}>
+          <button className="button button--ghost" type="button" onClick={() => navigate(routes.login)}>
             Back to login
           </button>
         </div>

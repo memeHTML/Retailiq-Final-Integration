@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthShell } from '@/components/layout/AuthShell';
+import { routes } from '@/routes/routes';
 import { mfaSetupSchema, type MfaSetupFormValues } from '@/types/schemas';
 import { useMfaSetupMutation } from '@/hooks/auth';
 import { normalizeApiError } from '@/utils/errors';
@@ -17,7 +18,7 @@ import { uiStore } from '@/stores/uiStore';
 export default function MfaSetupPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirect = searchParams.get('redirect') ?? '/dashboard';
+  const redirect = searchParams.get('redirect') ?? routes.dashboard;
   const addToast = uiStore((state) => state.addToast);
   const mutation = useMfaSetupMutation();
   const [serverMessage, setServerMessage] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export default function MfaSetupPage() {
     try {
       const result = await mutation.mutateAsync(values);
       addToast({ title: 'MFA configured', message: result.message, variant: 'success' });
-      navigate(`/mfa-verify?redirect=${encodeURIComponent(redirect)}`, { replace: true });
+      navigate(`${routes.mfaVerify}?redirect=${encodeURIComponent(redirect)}`, { replace: true });
     } catch (error) {
       const apiError = normalizeApiError(error);
       if (apiError.status === 422) {
@@ -53,7 +54,7 @@ export default function MfaSetupPage() {
         {serverMessage ? <div className="muted">{serverMessage}</div> : null}
         <div className="button-row">
           <button className="button" type="submit" disabled={isSubmitting || mutation.isPending}>{isSubmitting || mutation.isPending ? 'Generating…' : 'Generate MFA secret'}</button>
-          <button className="button button--ghost" type="button" onClick={() => navigate('/dashboard')}>Skip</button>
+          <button className="button button--ghost" type="button" onClick={() => navigate(routes.dashboard)}>Skip</button>
         </div>
       </form>
     </AuthShell>

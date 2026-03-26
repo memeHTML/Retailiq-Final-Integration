@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { generatePath, useNavigate } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
+import { routes } from '@/routes/routes';
 import { FileUploadDropzone } from '@/components/ui/FileUploadDropzone';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -87,7 +88,7 @@ export default function VisionOcrUploadPage() {
                   try {
                     const result = await ocrUploadMutation.mutateAsync({ invoice_image: file });
                     addToast({ title: 'OCR queued', message: `Job ${result.job_id}`, variant: 'info' });
-                    navigate(`/vision/ocr/${result.job_id}`, { replace: true });
+                    navigate(generatePath(routes.visionOcrReview, { jobId: result.job_id }), { replace: true });
                   } catch (err) {
                     setError(normalizeApiError(err).message);
                   }

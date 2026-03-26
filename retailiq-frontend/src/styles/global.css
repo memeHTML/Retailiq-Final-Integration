@@ -264,6 +264,11 @@ svg {
   min-width: 0;
 }
 
+.header__title-stack {
+  display: grid;
+  gap: 4px;
+}
+
 .header__menu,
 .header__icon {
   border: 1px solid var(--border);
@@ -283,6 +288,31 @@ svg {
   letter-spacing: 0.12em;
   color: var(--text-muted);
   margin-bottom: 4px;
+}
+
+.header__breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.header__breadcrumb-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header__breadcrumb--current {
+  color: var(--text);
+}
+
+.header__breadcrumb-separator {
+  opacity: 0.45;
 }
 
 .header h1 {
@@ -365,6 +395,12 @@ svg {
   text-transform: capitalize;
 }
 
+.header__store {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .app-shell__content {
   min-width: 0;
   padding: 28px;
@@ -417,6 +453,18 @@ svg {
   display: grid;
 }
 
+.command-palette__section {
+  display: grid;
+}
+
+.command-palette__section-title {
+  padding: 14px 20px 8px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
 .command-palette__item {
   display: grid;
   gap: 4px;
@@ -430,6 +478,12 @@ svg {
 
 .command-palette__item:hover {
   background: rgba(15, 94, 255, 0.06);
+}
+
+.command-palette__item[aria-selected='true'],
+.command-palette__item[data-selected='true'] {
+  background: rgba(15, 94, 255, 0.1);
+  color: var(--primary-strong);
 }
 
 .command-palette__item span {

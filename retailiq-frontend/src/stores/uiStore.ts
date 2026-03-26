@@ -20,11 +20,17 @@ export interface UiState {
   toasts: ToastItem[];
   modals: Record<string, boolean>;
   sidebarCollapsed: boolean;
+  mobileNavOpen: boolean;
+  commandPaletteOpen: boolean;
   addToast: (toast: Omit<ToastItem, 'id'>) => string;
   removeToast: (id: string) => void;
   openModal: (key: string) => void;
   closeModal: (key: string) => void;
   toggleSidebar: () => void;
+  setMobileNavOpen: (open: boolean) => void;
+  toggleMobileNav: () => void;
+  setCommandPaletteOpen: (open: boolean) => void;
+  toggleCommandPalette: () => void;
   pushErrorToast: (error: ApiError) => string;
 }
 
@@ -32,6 +38,8 @@ const uiStateCreator: StateCreator<UiState> = (set) => ({
   toasts: [],
   modals: {},
   sidebarCollapsed: false,
+  mobileNavOpen: false,
+  commandPaletteOpen: false,
   addToast: (toast: Omit<ToastItem, 'id'>) => {
     const id = createToastId();
     set((state: UiState) => ({
@@ -54,6 +62,18 @@ const uiStateCreator: StateCreator<UiState> = (set) => ({
   })),
   toggleSidebar: () => set((state: UiState) => ({
     sidebarCollapsed: !state.sidebarCollapsed,
+  })),
+  setMobileNavOpen: (mobileNavOpen: boolean) => set({
+    mobileNavOpen,
+  }),
+  toggleMobileNav: () => set((state: UiState) => ({
+    mobileNavOpen: !state.mobileNavOpen,
+  })),
+  setCommandPaletteOpen: (open: boolean) => set({
+    commandPaletteOpen: open,
+  }),
+  toggleCommandPalette: () => set((state: UiState) => ({
+    commandPaletteOpen: !state.commandPaletteOpen,
   })),
   pushErrorToast: (error: ApiError) => {
     const id = createToastId();
