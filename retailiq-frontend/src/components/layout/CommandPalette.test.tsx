@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,7 +37,7 @@ describe('CommandPalette', () => {
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <CommandPalette open onOpenChange={vi.fn()} />
       </MemoryRouter>,
     );
@@ -45,7 +45,9 @@ describe('CommandPalette', () => {
     expect(screen.getByRole('dialog', { name: /quick search/i })).toBeTruthy();
     const input = screen.getByPlaceholderText(/search pages and actions/i);
     await user.type(input, 'intelligence');
-    await user.keyboard('{ArrowDown}{Enter}');
+    await act(async () => {
+      await user.keyboard('{ArrowDown}{Enter}');
+    });
 
     expect(navigateMock).toHaveBeenCalledWith('/market-intelligence');
     expect(JSON.parse(window.localStorage.getItem('retailiq-command-palette-recents') ?? '[]')[0].to).toBe('/market-intelligence');
@@ -56,12 +58,14 @@ describe('CommandPalette', () => {
     const onOpenChange = vi.fn();
 
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <CommandPalette open onOpenChange={onOpenChange} />
       </MemoryRouter>,
     );
 
-    await user.keyboard('{Escape}');
+    await act(async () => {
+      await user.keyboard('{Escape}');
+    });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

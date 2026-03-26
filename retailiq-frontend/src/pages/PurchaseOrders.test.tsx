@@ -101,7 +101,7 @@ describe('PurchaseOrdersPage', () => {
 
   it('renders supplier names and totals from hydrated detail data', () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <PurchaseOrdersPage />
       </MemoryRouter>,
     );

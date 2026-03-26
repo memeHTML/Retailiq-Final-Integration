@@ -1,5 +1,7 @@
 import { apiGet, apiPost } from '@/api/client';
 
+export type TaxCountryCode = 'IN' | 'BR' | 'MX' | 'ID';
+
 export interface TaxConfigResponse {
   tax_id: string | null;
   registration_type: string;
@@ -7,9 +9,16 @@ export interface TaxConfigResponse {
   is_tax_enabled: boolean;
 }
 
+export interface TaxCalculationItem {
+  product_id: number;
+  quantity: number;
+  selling_price: number;
+  discount: number;
+}
+
 export interface TaxCalculationRequest {
-  items: Array<Record<string, unknown>>;
-  country_code?: string;
+  items: TaxCalculationItem[];
+  country_code: TaxCountryCode;
 }
 
 export interface TaxCalculationResponse {

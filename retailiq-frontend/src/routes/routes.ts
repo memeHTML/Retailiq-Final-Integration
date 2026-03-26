@@ -26,6 +26,8 @@ export const routes = {
   customerDetail: '/customers/:customerId',
   analytics: '/analytics',
   finance: '/finance',
+  financeGst: '/finance/gst',
+  financeEinvoice: '/finance/einvoice',
   ai: '/ai-assistant',
   suppliers: '/suppliers',
   supplierNew: '/suppliers/new',

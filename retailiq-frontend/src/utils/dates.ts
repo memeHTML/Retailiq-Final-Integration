@@ -32,3 +32,9 @@ export const formatDisplayDateTime = (date: Date | string | number) => dateTimeF
 export const toApiDate = (date: Date) => date.toISOString();
 
 export const formatDate = formatDisplayDate;
+
+export const formatYearMonthLocal = (date: Date | string | number = new Date()) => {
+  const resolved = parseApiDate(date);
+  const month = String(resolved.getMonth() + 1).padStart(2, '0');
+  return `${resolved.getFullYear()}-${month}`;
+};

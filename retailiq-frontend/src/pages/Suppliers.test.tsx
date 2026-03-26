@@ -62,7 +62,7 @@ describe('SuppliersPage', () => {
 
   it('renders linked product counts from hydrated supplier detail data', () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <SuppliersPage />
       </MemoryRouter>,
     );

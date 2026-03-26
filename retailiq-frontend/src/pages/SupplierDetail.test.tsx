@@ -58,7 +58,7 @@ describe('SupplierDetailPage', () => {
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter initialEntries={['/suppliers/supplier-1']}>
+      <MemoryRouter initialEntries={['/suppliers/supplier-1']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/suppliers/:supplierId" element={<SupplierDetailPage />} />
         </Routes>

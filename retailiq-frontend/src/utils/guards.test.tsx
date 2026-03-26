@@ -24,7 +24,7 @@ describe('route guards', () => {
 
   it('redirects unauthenticated users to login from protected routes', async () => {
     render(
-      <MemoryRouter initialEntries={['/dashboard']}>
+      <MemoryRouter initialEntries={['/dashboard']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route element={<AuthGuard />}>
             <Route path="/dashboard" element={<div>Dashboard</div>} />
@@ -61,7 +61,7 @@ describe('route guards', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/login']}>
+      <MemoryRouter initialEntries={['/login']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route element={<PublicOnlyGuard />}>
             <Route path="/login" element={<div>Login</div>} />

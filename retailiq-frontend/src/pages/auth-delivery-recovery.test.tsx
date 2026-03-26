@@ -49,7 +49,7 @@ describe('verification email recovery', () => {
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter initialEntries={['/register']}>
+      <MemoryRouter initialEntries={['/register']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
@@ -79,7 +79,7 @@ describe('verification email recovery', () => {
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter initialEntries={['/login?redirect=%2Fdashboard']}>
+      <MemoryRouter initialEntries={['/login?redirect=%2Fdashboard']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/verify-otp" element={<VerifyOtpPage />} />

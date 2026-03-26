@@ -24,7 +24,7 @@ vi.mock('@/stores/authStore', () => ({
 describe('MobileNav', () => {
   it('renders the navigation drawer when opened', () => {
     render(
-      <MemoryRouter initialEntries={['/dashboard']}>
+      <MemoryRouter initialEntries={['/dashboard']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <MobileNav />
       </MemoryRouter>,
     );

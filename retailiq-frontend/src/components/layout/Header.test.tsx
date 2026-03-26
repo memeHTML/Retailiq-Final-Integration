@@ -64,7 +64,7 @@ describe('Header', () => {
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter initialEntries={['/dashboard']}>
+      <MemoryRouter initialEntries={['/dashboard']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Header onOpenPalette={vi.fn()} />
       </MemoryRouter>,
     );

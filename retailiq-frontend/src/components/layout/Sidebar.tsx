@@ -97,8 +97,8 @@ const navGroups: NavGroup[] = [
     title: 'Financials',
     items: [
       { label: 'Finance Dashboard', to: routes.finance, icon: CircleDollarSign },
-      { label: 'GST / Tax', to: routes.gst, icon: FileText, ownerOnly: true },
-      { label: 'E-Invoicing', to: routes.einvoice, icon: ReceiptText },
+      { label: 'GST / Tax', to: routes.financeGst, icon: FileText },
+      { label: 'E-Invoicing', to: routes.financeEinvoice, icon: ReceiptText },
     ],
   },
   {

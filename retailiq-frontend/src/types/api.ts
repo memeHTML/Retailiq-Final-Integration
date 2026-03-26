@@ -59,8 +59,11 @@ import type {
 export interface ApiError {
   message: string;
   status: number | undefined;
+  code?: string;
   fields?: Record<string, string>;
   correlationId?: string;
+  timestamp?: string;
+  details?: unknown;
   raw?: unknown;
 }
 
@@ -837,11 +840,15 @@ export interface GenerateEInvoiceRequest {
 }
 
 export interface GenerateEInvoiceResponse {
+  invoice_id: string;
+  transaction_id: string;
+  country_code: string;
+  invoice_format: string;
+  invoice_number: string | null;
+  authority_ref: string | null;
   status: string;
-  invoice_id?: string;
-  invoice_number?: string;
-  authority_ref?: string;
-  qr_code_url?: string;
+  submitted_at: string | null;
+  qr_code_url: string | null;
 }
 
 export type GetEInvoiceStatusResponse = EInvoice;

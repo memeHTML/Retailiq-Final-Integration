@@ -23,6 +23,7 @@
       "@/lib/*": ["src/lib/*"],
       "@/api/*": ["src/api/*"],
       "@/hooks/*": ["src/hooks/*"],
+      "@/features/*": ["src/features/*"],
       "@/stores/*": ["src/stores/*"],
       "@/components/*": ["src/components/*"],
       "@/pages/*": ["src/pages/*"],

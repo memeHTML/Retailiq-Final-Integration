@@ -9,6 +9,8 @@ describe('route registry', () => {
     expect(routes.register).toBe('/register');
     expect(routes.verifyOtp).toBe('/verify-otp');
     expect(routes.mfa).toBe('/mfa');
+    expect(routes.financeGst).toBe('/finance/gst');
+    expect(routes.financeEinvoice).toBe('/finance/einvoice');
     expect(routes.marketIntelligence).toBe('/market-intelligence');
     expect(routes.pos).toBe('/pos');
     expect(routes.stockAudit).toBe('/inventory/stock-audit');
@@ -23,6 +25,8 @@ describe('route registry', () => {
     expect(routes.authOtp).toBe('/auth/otp');
     expect(routes.mfaSetup).toBe('/mfa-setup');
     expect(routes.mfaVerify).toBe('/mfa-verify');
+    expect(routes.gst).toBe('/gst');
+    expect(routes.einvoice).toBe('/e-invoicing');
   });
 
   it('does not hardcode canonical route strings in page navigation files', () => {

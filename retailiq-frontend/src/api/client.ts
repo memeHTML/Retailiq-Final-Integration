@@ -239,7 +239,7 @@ export async function requestAny<T>(configs: AxiosRequestConfig[]): Promise<ApiR
       return await requestEnvelope<T>(config);
     } catch (error) {
       const normalized = normalizeApiError(error);
-      if (normalized.status === 404 || normalized.status === 405) {
+      if (normalized.status === 404) {
         lastError = error;
         continue;
       }

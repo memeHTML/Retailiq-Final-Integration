@@ -7,6 +7,51 @@ import { isAxiosError, type AxiosError, type AxiosResponse } from 'axios';
 import type { FieldValues, Path, UseFormSetError } from 'react-hook-form';
 import type { ApiError } from '@/types/api';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const toFieldRecord = (value: unknown): Record<string, string> | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      Array.isArray(entry) ? entry.map((item) => String(item)).join(', ') : String(entry),
+    ]),
+  );
+};
+
+const collectFieldCandidates = (payload: unknown): unknown[] => {
+  if (!isRecord(payload)) {
+    return [];
+  }
+
+  const candidate = payload as Record<string, unknown>;
+  const nestedError = isRecord(candidate.error) ? candidate.error : undefined;
+  const nestedMessage = isRecord(candidate.message) ? candidate.message : undefined;
+  const nestedDetail = isRecord(candidate.detail) ? candidate.detail : undefined;
+
+  return [
+    candidate.fields,
+    candidate.errors,
+    candidate.validation_errors,
+    nestedError?.fields,
+    nestedError?.errors,
+    nestedError?.validation_errors,
+    nestedMessage?.fields,
+    nestedMessage?.errors,
+    nestedMessage?.validation_errors,
+    nestedDetail?.fields,
+    nestedDetail?.errors,
+    nestedDetail?.validation_errors,
+    nestedError && !('code' in nestedError) && !('message' in nestedError) && !('description' in nestedError) && !('error_description' in nestedError) ? nestedError : undefined,
+    nestedMessage && !('code' in nestedMessage) && !('message' in nestedMessage) && !('description' in nestedMessage) && !('error_description' in nestedMessage) ? nestedMessage : undefined,
+    nestedDetail && !('code' in nestedDetail) && !('message' in nestedDetail) && !('description' in nestedDetail) && !('error_description' in nestedDetail) ? nestedDetail : undefined,
+  ].filter(Boolean);
+};
+
 const extractCorrelationId = (response: AxiosResponse | undefined) => {
   const headers = response?.headers;
   if (!headers) {
@@ -17,48 +62,22 @@ const extractCorrelationId = (response: AxiosResponse | undefined) => {
 };
 
 const extractFields = (payload: unknown): Record<string, string> | undefined => {
-  if (!payload || typeof payload !== 'object') {
-    return undefined;
+  for (const candidate of collectFieldCandidates(payload)) {
+    const mapped = toFieldRecord(candidate);
+    if (mapped) {
+      return mapped;
+    }
   }
 
-  const candidate = payload as Record<string, unknown>;
-  const nestedError = candidate.error;
-  const nestedErrorRecord = nestedError && typeof nestedError === 'object'
-    ? nestedError as Record<string, unknown>
-    : undefined;
-  const nestedFields = nestedError && typeof nestedError === 'object'
-    ? nestedErrorRecord?.fields
-    : undefined;
-
-  const source = candidate.fields
-    ?? candidate.errors
-    ?? candidate.validation_errors
-    ?? nestedFields
-    ?? (
-      nestedErrorRecord
-      && !('code' in nestedErrorRecord)
-      && !('message' in nestedErrorRecord)
-      && !('description' in nestedErrorRecord)
-      && !('error_description' in nestedErrorRecord)
-        ? nestedErrorRecord
-        : undefined
-    );
-
-  if (!source || typeof source !== 'object') {
-    return undefined;
-  }
-
-  return Object.fromEntries(
-    Object.entries(source as Record<string, unknown>).map(([key, value]) => [key, Array.isArray(value) ? value.join(', ') : String(value)]),
-  );
+  return undefined;
 };
 
-const extractMessage = (payload: unknown, fallback = 'Request failed.') => {
+const extractMessage = (payload: unknown, fallback = 'Request failed.'): string => {
   if (typeof payload === 'string') {
     return payload;
   }
 
-  if (!payload || typeof payload !== 'object') {
+  if (!isRecord(payload)) {
     return fallback;
   }
 
@@ -66,6 +85,13 @@ const extractMessage = (payload: unknown, fallback = 'Request failed.') => {
 
   if (typeof candidate.message === 'string') {
     return candidate.message;
+  }
+
+  if (isRecord(candidate.message)) {
+    const nestedMessage: string = extractMessage(candidate.message, '');
+    if (nestedMessage) {
+      return nestedMessage;
+    }
   }
 
   if (typeof candidate.status === 'string') {
@@ -80,10 +106,23 @@ const extractMessage = (payload: unknown, fallback = 'Request failed.') => {
     return candidate.detail;
   }
 
-  if (candidate.error && typeof candidate.error === 'object') {
-    const nested = candidate.error as Record<string, unknown>;
+  if (isRecord(candidate.detail)) {
+    const nestedDetail: string = extractMessage(candidate.detail, '');
+    if (nestedDetail) {
+      return nestedDetail;
+    }
+  }
+
+  if (isRecord(candidate.error)) {
+    const nested = candidate.error;
     if (typeof nested.message === 'string') {
       return nested.message;
+    }
+    if (isRecord(nested.message)) {
+      const nestedMessage: string = extractMessage(nested.message, '');
+      if (nestedMessage) {
+        return nestedMessage;
+      }
     }
     if (typeof nested.description === 'string') {
       return nested.description;
@@ -100,7 +139,51 @@ const extractMessage = (payload: unknown, fallback = 'Request failed.') => {
     return candidate.error;
   }
 
+  if (extractFields(candidate)) {
+    return 'Validation failed.';
+  }
+
   return fallback;
+};
+
+const extractCode = (payload: unknown) => {
+  if (!isRecord(payload)) {
+    return undefined;
+  }
+
+  const candidate = payload as Record<string, unknown>;
+  if (typeof candidate.code === 'string') {
+    return candidate.code;
+  }
+
+  if (isRecord(candidate.error)) {
+    const nested = candidate.error;
+    if (typeof nested.code === 'string') {
+      return nested.code;
+    }
+  }
+
+  return undefined;
+};
+
+const extractTimestamp = (payload: unknown) => {
+  if (!isRecord(payload)) {
+    return undefined;
+  }
+
+  const candidate = payload as Record<string, unknown>;
+  if (typeof candidate.timestamp === 'string') {
+    return candidate.timestamp;
+  }
+
+  if (isRecord(candidate.error)) {
+    const nested = candidate.error;
+    if (typeof nested.timestamp === 'string') {
+      return nested.timestamp;
+    }
+  }
+
+  return undefined;
 };
 
 export function normalizeApiError(error: unknown): ApiError {
@@ -109,24 +192,31 @@ export function normalizeApiError(error: unknown): ApiError {
     const response = axiosError.response;
     const payload = response?.data;
     const correlationId = extractCorrelationId(response);
+    const fields = extractFields(payload);
 
     return {
-      message: extractMessage(payload, axiosError.message || 'Request failed.'),
+      message: extractMessage(payload, fields ? 'Validation failed.' : axiosError.message || 'Request failed.'),
       status: response?.status ?? axiosError.status,
-      fields: extractFields(payload),
+      code: extractCode(payload),
+      fields,
       correlationId: correlationId ? String(correlationId) : undefined,
+      timestamp: extractTimestamp(payload),
+      details: payload,
       raw: payload ?? axiosError.toJSON(),
     };
   }
 
-  if (error && typeof error === 'object') {
+  if (isRecord(error)) {
     const candidate = error as Record<string, unknown>;
-    const rawFields = candidate.fields;
+    const fields = extractFields(candidate);
     return {
-      message: extractMessage(candidate),
+      message: extractMessage(candidate, fields ? 'Validation failed.' : 'Request failed.'),
       status: typeof candidate.status === 'number' ? candidate.status : undefined,
-      fields: rawFields && typeof rawFields === 'object' ? Object.fromEntries(Object.entries(rawFields as Record<string, unknown>).map(([key, value]) => [key, String(value)])) : undefined,
+      code: extractCode(candidate),
+      fields,
       correlationId: typeof candidate.correlationId === 'string' ? candidate.correlationId : undefined,
+      timestamp: extractTimestamp(candidate),
+      details: candidate.details ?? candidate,
       raw: candidate,
     };
   }
@@ -134,6 +224,9 @@ export function normalizeApiError(error: unknown): ApiError {
   return {
     message: extractMessage(error),
     status: undefined,
+    code: extractCode(error),
+    timestamp: extractTimestamp(error),
+    details: error,
     raw: error,
   };
 }
@@ -147,33 +240,7 @@ export const isUnauthorized = (error: ApiError | null | undefined) => error?.sta
 export const isForbidden = (error: ApiError | null | undefined) => error?.status === 403;
 
 export const parseApiError = (value: unknown): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (value && typeof value === 'object') {
-    const candidate = value as Record<string, unknown>;
-    if (typeof candidate.message === 'string') {
-      return candidate.message;
-    }
-    if (typeof candidate.error_description === 'string') {
-      return candidate.error_description;
-    }
-    if (typeof candidate.error === 'string') {
-      return candidate.error;
-    }
-    if (candidate.error && typeof candidate.error === 'object') {
-      const nested = candidate.error as Record<string, unknown>;
-      if (typeof nested.message === 'string') {
-        return nested.message;
-      }
-      if (typeof nested.description === 'string') {
-        return nested.description;
-      }
-    }
-  }
-
-  return 'An unexpected error occurred.';
+  return extractMessage(value, 'An unexpected error occurred.');
 };
 
 export const extractFieldErrors = <TFieldValues extends FieldValues>(fields: Record<string, string> | undefined, setError: UseFormSetError<TFieldValues>) => {
