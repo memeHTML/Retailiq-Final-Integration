@@ -7,6 +7,9 @@ import { routes } from '@/routes/routes';
 
 const titleMap: Record<string, string> = {
   [routes.dashboard]: 'Dashboard',
+  [routes.dashboardAlerts]: 'Smart Alerts',
+  [routes.dashboardCalendar]: 'Financial Calendar',
+  [routes.dashboardReports]: 'Reports',
   [routes.inventory]: 'Inventory',
   [routes.transactions]: 'Transactions',
   [routes.customers]: 'Customers',
@@ -37,6 +40,9 @@ export function Header({ onOpenPalette }: HeaderProps) {
 
   const title = useMemo(() => {
     const pathname = location.pathname;
+    if (pathname.startsWith('/dashboard/alerts')) return 'Smart Alerts';
+    if (pathname.startsWith('/dashboard/calendar')) return 'Financial Calendar';
+    if (pathname.startsWith('/dashboard/reports')) return 'Reports';
     if (pathname.startsWith('/store')) return 'Store Profile';
     if (pathname.startsWith('/inventory')) return 'Inventory';
     if (pathname.startsWith('/purchase-orders')) return 'Purchase Orders';

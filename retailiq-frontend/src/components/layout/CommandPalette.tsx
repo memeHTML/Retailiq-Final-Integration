@@ -11,6 +11,9 @@ type CommandItem = {
 
 const items: CommandItem[] = [
   { label: 'Dashboard', description: 'Overview and KPIs', to: routes.dashboard },
+  { label: 'Smart Alerts', description: 'Operational alert center', to: routes.dashboardAlerts },
+  { label: 'Financial Calendar', description: 'Events and deadlines', to: routes.dashboardCalendar },
+  { label: 'Reports', description: 'Exports and launchers', to: routes.dashboardReports },
   { label: 'Inventory', description: 'Products and stock', to: routes.inventory },
   { label: 'Transactions', description: 'Sales and returns', to: routes.transactions },
   { label: 'Customers', description: 'Customer records', to: routes.customers },

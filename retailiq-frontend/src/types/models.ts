@@ -525,6 +525,15 @@ export interface DashboardIncident {
   estimated_resolution: string;
 }
 
+export interface InventoryAlert {
+  alert_id: number;
+  alert_type: string;
+  priority: string;
+  product_id: number | null;
+  message: string;
+  created_at: string | null;
+}
+
 export interface OfflineSnapshot {
   built_at: string | null;
   size_bytes: number;

@@ -81,6 +81,25 @@ interface ProfitRow {
   margin_pct?: number;
 }
 
+interface RevenueTrendRow {
+  date?: string;
+  revenue?: number;
+  profit?: number;
+  transactions?: number;
+}
+
+const resolveDateRange = (period: string) => {
+  const days = period === '90d' ? 90 : period === '30d' ? 30 : 7;
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(end.getDate() - (days - 1));
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+    group_by: 'day' as const,
+  };
+};
+
 export const analyticsApi = {
   getRevenueMetrics: async (): Promise<RevenueMetricsResponse> => {
     const { data } = await requestEnvelope<RevenueRow[]>({ url: '/api/v1/analytics/revenue', method: 'GET' });
@@ -175,6 +194,39 @@ export const analyticsApi = {
       category_breakdown: Array.isArray(data?.category_breakdown) ? data.category_breakdown : [],
       payment_mode_breakdown: Array.isArray(data?.payment_mode_breakdown) ? data.payment_mode_breakdown : [],
     };
+  },
+
+  getAnalyticsDashboard: async (period = '30d'): Promise<AnalyticsDashboardResponse> => {
+    const params = period ? { period } : undefined;
+    const { data } = await requestEnvelope<AnalyticsDashboardResponse>({ url: '/api/v1/analytics/dashboard', method: 'GET', params });
+    return {
+      today_kpis: data?.today_kpis ?? {
+        date: '',
+        revenue: 0,
+        profit: 0,
+        transactions: 0,
+        avg_basket: 0,
+        units_sold: 0,
+      },
+      insights: Array.isArray(data?.insights) ? data.insights : [],
+      top_products_today: Array.isArray(data?.top_products_today) ? data.top_products_today : [],
+      alerts_summary: data?.alerts_summary ?? {},
+      revenue_7d: Array.isArray(data?.revenue_7d) ? data.revenue_7d : [],
+      moving_avg_7d: Array.isArray(data?.moving_avg_7d) ? data.moving_avg_7d : [],
+      category_breakdown: Array.isArray(data?.category_breakdown) ? data.category_breakdown : [],
+      payment_mode_breakdown: Array.isArray(data?.payment_mode_breakdown) ? data.payment_mode_breakdown : [],
+    };
+  },
+
+  getRevenueTrend: async (period = '30d'): Promise<RevenueTrendRow[]> => {
+    const { start, end, group_by } = resolveDateRange(period);
+    const { data } = await requestEnvelope<RevenueTrendRow[]>({
+      url: '/api/v1/analytics/revenue',
+      method: 'GET',
+      params: { start, end, group_by },
+    });
+
+    return Array.isArray(data) ? data : [];
   },
 
   getProfitContribution: async () => {

@@ -1,5 +1,8 @@
 export const routes = {
   dashboard: '/dashboard',
+  dashboardAlerts: '/dashboard/alerts',
+  dashboardCalendar: '/dashboard/calendar',
+  dashboardReports: '/dashboard/reports',
   login: '/login',
   register: '/register',
   verifyOtp: '/verify-otp',

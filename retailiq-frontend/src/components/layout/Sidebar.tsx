@@ -23,9 +23,9 @@ const navGroups: NavGroup[] = [
     title: 'Dashboard',
     items: [
       { label: 'Overview', to: routes.dashboard, icon: LayoutDashboard },
-      { label: 'Smart Alerts', to: '/alerts', icon: Sparkles },
-      { label: 'Reports', to: '/reports', icon: FileText },
-      { label: 'Financial Calendar', to: '/financial-calendar', icon: CalendarIcon },
+      { label: 'Smart Alerts', to: routes.dashboardAlerts, icon: Sparkles },
+      { label: 'Reports', to: routes.dashboardReports, icon: FileText },
+      { label: 'Financial Calendar', to: routes.dashboardCalendar, icon: CalendarIcon },
     ],
   },
   {

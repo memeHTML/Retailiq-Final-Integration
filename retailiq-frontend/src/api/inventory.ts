@@ -19,6 +19,7 @@ import type {
   UpdateProductRequest,
   UpdateProductResponse,
 } from '@/types/api';
+import type { InventoryAlert } from '@/types/models';
 
 export const listProducts = async (filters: ListProductsRequest): Promise<ListProductsResponse> => {
   const { data, meta } = await requestEnvelope<ListProductsResponse['data']>({ url: '/api/v1/inventory', method: 'GET', params: filters });
@@ -58,4 +59,13 @@ export const stockAuditLegacy = async (payload: StockAuditRequest): Promise<Stoc
 export const getPriceHistory = async (productId: number | string) => {
   const history = await request<unknown[]>({ url: `/api/v1/inventory/${productId}/price-history`, method: 'GET' });
   return { product_id: productId, history: Array.isArray(history) ? history : [] };
+};
+
+export const getInventoryAlerts = async (): Promise<InventoryAlert[]> => {
+  const alerts = await request<InventoryAlert[]>({ url: '/api/v1/inventory/alerts', method: 'GET' });
+  return Array.isArray(alerts) ? alerts : [];
+};
+
+export const dismissInventoryAlert = async (alertId: number | string): Promise<void> => {
+  await request({ url: `/api/v1/inventory/alerts/${alertId}`, method: 'DELETE' });
 };
