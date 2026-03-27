@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BarChart3, Boxes, BrainCircuit, Building2, ChevronLeft, ChevronRight, CircleDollarSign, CreditCard, FileText, FolderKanban, Globe2, LayoutDashboard, Megaphone, ReceiptText, RefreshCcw, ScanLine, Settings2, ShieldCheck, ShoppingCart, Sparkles, Store, Users, Webhook, Zap } from 'lucide-react';
+import { BarChart3, Boxes, BrainCircuit, Building2, ChevronLeft, ChevronRight, CircleDollarSign, CreditCard, FileText, FolderKanban, Globe2, LayoutDashboard, Laptop2, LockKeyhole, Megaphone, ReceiptText, RefreshCcw, ScanLine, Settings2, ShieldCheck, ShoppingCart, Sparkles, Store, Users, Webhook, Zap } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { uiStore } from '@/stores/uiStore';
 import { authStore } from '@/stores/authStore';
@@ -33,6 +33,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: 'Products', to: routes.inventory, icon: Boxes },
       { label: 'Stock Audit', to: '/inventory/stock-audit', icon: ShieldCheck },
+      { label: 'Inventory Sync', to: routes.inventorySync, icon: RefreshCcw },
       { label: 'Receipts & Barcodes', to: '/receipts/queue', icon: ReceiptText },
       { label: 'Vision OCR', to: routes.vision, icon: ScanLine },
       { label: 'Pricing', to: routes.pricing, icon: CircleDollarSign, ownerOnly: true },
@@ -73,8 +74,18 @@ const navGroups: NavGroup[] = [
     title: 'Financials',
     items: [
       { label: 'Finance Dashboard', to: routes.finance, icon: CircleDollarSign },
+      { label: 'Ledger', to: routes.financeLedger, icon: FileText, ownerOnly: true },
+      { label: 'Treasury', to: routes.financeTreasury, icon: Store, ownerOnly: true },
+      { label: 'Loans', to: routes.financeLoans, icon: FolderKanban, ownerOnly: true },
       { label: 'GST / Tax', to: routes.gst, icon: FileText, ownerOnly: true },
       { label: 'E-Invoicing', to: routes.einvoice, icon: ReceiptText },
+    ],
+  },
+  {
+    title: 'AI Assistant',
+    items: [
+      { label: 'Chat', to: routes.ai, icon: Laptop2 },
+      { label: 'AI Tools', to: routes.aiTools, icon: BrainCircuit },
     ],
   },
   {
@@ -89,7 +100,10 @@ const navGroups: NavGroup[] = [
     title: 'Settings',
     items: [
       { label: 'Store Profile', to: routes.settings, icon: Store, ownerOnly: true },
+      { label: 'Categories', to: '/store/categories', icon: Boxes, ownerOnly: true },
+      { label: 'Tax Config', to: '/store/tax-config', icon: FileText, ownerOnly: true },
       { label: 'Language / i18n', to: routes.i18n, icon: Globe2 },
+      { label: 'Security / MFA', to: routes.security, icon: LockKeyhole },
     ],
   },
 ];

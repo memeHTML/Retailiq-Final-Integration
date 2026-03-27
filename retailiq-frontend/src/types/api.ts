@@ -265,6 +265,7 @@ export interface CreateProductRequest {
   supplier_name?: string | null;
   barcode?: string | null;
   image_url?: string | null;
+  description?: string | null;
   lead_time_days?: number | null;
   hsn_code?: string | null;
 }
@@ -307,6 +308,21 @@ export interface StockAuditRequest {
 export interface StockAuditResponse {
   message: string;
   audit_id?: number;
+  audit_date?: string;
+  items?: Array<{
+    product_id: number;
+    expected_stock: number;
+    actual_stock: number;
+    discrepancy: number;
+  }>;
+}
+
+export interface InventoryPriceHistoryEntry {
+  id: number;
+  cost_price: number | null;
+  selling_price: number | null;
+  changed_at: string | null;
+  changed_by: number | null;
 }
 
 export type CreateTransactionLineItemRequest = TransactionLineItem;

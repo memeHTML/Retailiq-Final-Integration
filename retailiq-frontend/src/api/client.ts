@@ -172,7 +172,12 @@ apiClient.interceptors.response.use(
         authStore.getState().clearAuth();
         clearStoredRefreshToken();
         redirectToLogin();
-        return Promise.reject(axiosError.response.data ?? error);
+        return Promise.reject({
+          ...(axiosError.response?.data && typeof axiosError.response.data === 'object'
+            ? axiosError.response.data as Record<string, unknown>
+            : { error: axiosError.response?.data ?? error }),
+          status: axiosError.response?.status,
+        });
       }
 
       try {
@@ -202,10 +207,20 @@ apiClient.interceptors.response.use(
       authStore.getState().clearAuth();
       clearStoredRefreshToken();
       redirectToLogin();
-      return Promise.reject(axiosError.response.data ?? error);
+      return Promise.reject({
+        ...(axiosError.response?.data && typeof axiosError.response.data === 'object'
+          ? axiosError.response.data as Record<string, unknown>
+          : { error: axiosError.response?.data ?? error }),
+        status: axiosError.response?.status,
+      });
     }
 
-    return Promise.reject(axiosError.response?.data ?? error);
+    return Promise.reject({
+      ...(axiosError.response?.data && typeof axiosError.response.data === 'object'
+        ? axiosError.response.data as Record<string, unknown>
+        : { error: axiosError.response?.data ?? error }),
+      status: axiosError.response?.status,
+    });
   },
 );
 

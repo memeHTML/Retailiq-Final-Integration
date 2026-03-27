@@ -75,6 +75,7 @@ export interface Product {
   supplier_name: string | null;
   barcode: string | null;
   image_url: string | null;
+  description?: string | null;
   is_active: boolean;
   lead_time_days: number | null;
   hsn_code: string | null;

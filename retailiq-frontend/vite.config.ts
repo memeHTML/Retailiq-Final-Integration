@@ -9,10 +9,7 @@ import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  
-  // Only configure proxy if backend URL is provided
-  const backendUrl = env.VITE_API_URL || env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
-  const enableProxy = Boolean(env.VITE_API_URL || env.VITE_API_BASE_URL);
+  const backendUrl = env.VITE_API_URL || 'http://localhost:5000';
 
   return {
     plugins: [react()],
@@ -24,17 +21,19 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '0.0.0.0',
       port: 5173,
-      ...(enableProxy
-        ? {
-            proxy: {
-              '/api': {
-                target: backendUrl,
-                changeOrigin: true,
-                secure: false,
-              },
-            },
-          }
-        : {}),
+      proxy: {
+        '/api': {
+          target: backendUrl,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/ws': {
+          target: backendUrl,
+          changeOrigin: true,
+          ws: true,
+          secure: false,
+        },
+      },
     },
   };
 });

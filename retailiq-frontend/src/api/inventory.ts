@@ -19,6 +19,7 @@ import type {
   StockUpdateResponse,
   UpdateProductRequest,
   UpdateProductResponse,
+  InventoryPriceHistoryEntry,
 } from '@/types/api';
 import type { InventoryAlert } from '@/types/models';
 
@@ -54,12 +55,24 @@ export const stockAudit = async (payload: StockAuditRequest): Promise<StockAudit
   return {
     message: 'Stock audit completed',
     audit_id: typeof data.audit_id === 'number' ? data.audit_id : undefined,
+    audit_date: typeof data.audit_date === 'string' ? data.audit_date : undefined,
+    items: Array.isArray(data.items)
+      ? data.items.map((item) => ({
+          product_id: Number((item as Record<string, unknown>).product_id ?? 0),
+          expected_stock: Number((item as Record<string, unknown>).expected_stock ?? 0),
+          actual_stock: Number((item as Record<string, unknown>).actual_stock ?? 0),
+          discrepancy: Number((item as Record<string, unknown>).discrepancy ?? 0),
+        }))
+      : undefined,
   };
 };
 export const stockAuditLegacy = stockAudit;
-export const getPriceHistory = async (productId: number | string) => {
+export const getPriceHistory = async (productId: number | string): Promise<{ product_id: number | string; history: InventoryPriceHistoryEntry[] }> => {
   const history = await request<unknown[]>({ url: `/api/v1/inventory/${productId}/price-history`, method: 'GET' });
-  return { product_id: productId, history: Array.isArray(history) ? history : [] };
+  return {
+    product_id: productId,
+    history: Array.isArray(history) ? history as InventoryPriceHistoryEntry[] : [],
+  };
 };
 
 export const getInventoryAlerts = async (): Promise<InventoryAlert[]> => {

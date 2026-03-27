@@ -15,11 +15,13 @@ const titleMap: Record<string, string> = {
   [routes.customers]: 'Customers',
   [routes.analytics]: 'Analytics',
   [routes.finance]: 'Financials',
+  [routes.security]: 'Security / MFA',
   [routes.settings]: 'Store Profile',
   [routes.pricing]: 'Pricing',
   [routes.decisions]: 'Decisions',
   [routes.kyc]: 'KYC',
   [routes.developer]: 'Developer',
+  [routes.aiTools]: 'AI Tools',
 };
 
 interface HeaderProps {
@@ -53,6 +55,7 @@ export function Header({ onOpenPalette, onToggleSidebar }: HeaderProps) {
     if (pathname.startsWith('/market-intelligence')) return 'Market Intelligence';
     if (pathname.startsWith('/e-invoicing')) return 'E-Invoicing';
     if (pathname.startsWith('/ai-assistant')) return 'AI Assistant';
+    if (pathname.startsWith('/security')) return 'Security / MFA';
     if (pathname.startsWith('/financial-calendar')) return 'Financial Calendar';
     const path = `/${pathname.split('/').filter(Boolean)[0] ?? 'dashboard'}`;
     return titleMap[path] ?? 'RetailIQ';
