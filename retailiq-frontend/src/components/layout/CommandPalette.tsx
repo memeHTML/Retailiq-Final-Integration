@@ -16,6 +16,8 @@ const aliasToCanonicalPath: Record<string, string> = {
   [routes.kycLegacy]: routes.kyc,
   [routes.teamLegacy]: routes.team,
   [routes.opsLegacy]: routes.ops,
+  [routes.i18n]: routes.settingsI18n,
+  [routes.events]: routes.financialCalendar,
 };
 
 const commandItems: CommandItem[] = [
@@ -48,6 +50,7 @@ const commandItems: CommandItem[] = [
   { label: 'Store Profile', description: 'Business settings', to: routes.storeProfile },
   { label: 'Store Categories', description: 'Category management', to: routes.storeCategories },
   { label: 'Tax Config', description: 'Store tax rules', to: routes.storeTaxConfig },
+  { label: 'Internationalization', description: 'Translations, currencies, and countries', to: routes.settingsI18n },
   { label: 'MFA', description: 'Security and verification setup', to: routes.mfa },
   { label: 'Operations Hub', description: 'Overview of operations workflows', to: routes.operations },
   { label: 'Developer Platform', description: 'API keys, webhooks, usage, logs, and rate limits', to: routes.developer },

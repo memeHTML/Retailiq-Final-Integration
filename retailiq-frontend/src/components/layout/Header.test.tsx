@@ -93,6 +93,8 @@ describe('Header', () => {
     ['/operations/kyc', 'KYC'],
     ['/operations/team', 'Team'],
     ['/operations/maintenance', 'Maintenance'],
+    ['/settings/i18n', 'Internationalization'],
+    ['/financial-calendar', 'Financial Calendar'],
   ])('uses route-specific titles for %s', (pathname, title) => {
     currentPathname = pathname;
     render(<Header onOpenPalette={vi.fn()} />);

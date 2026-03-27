@@ -100,7 +100,11 @@ describe('CommandPalette', () => {
   it('normalizes legacy recents and searches canonical operations destinations', async () => {
     window.localStorage.setItem(
       COMMAND_PALETTE_RECENTS_KEY,
-      JSON.stringify([{ label: 'Legacy Maintenance', description: 'Old entry', to: '/ops' }]),
+      JSON.stringify([
+        { label: 'Legacy Maintenance', description: 'Old entry', to: '/ops' },
+        { label: 'Legacy i18n', description: 'Old entry', to: '/i18n' },
+        { label: 'Legacy Calendar', description: 'Old entry', to: '/events' },
+      ]),
     );
 
     const user = userEvent.setup();
@@ -114,6 +118,8 @@ describe('CommandPalette', () => {
     await waitFor(() => {
       const stored = JSON.parse(window.localStorage.getItem(COMMAND_PALETTE_RECENTS_KEY) ?? '[]') as Array<{ to: string }>;
       expect(stored[0].to).toBe('/operations/maintenance');
+      expect(stored[1].to).toBe('/settings/i18n');
+      expect(stored[2].to).toBe('/financial-calendar');
     });
 
     const input = within(container).getByPlaceholderText(/search pages and actions/i);
@@ -125,6 +131,26 @@ describe('CommandPalette', () => {
 
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/operations/team');
+    });
+  });
+
+  it('searches canonical i18n destinations', async () => {
+    const user = userEvent.setup();
+
+    const { container } = render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    const input = within(container).getByPlaceholderText(/search pages and actions/i);
+    await act(async () => {
+      await user.type(input, 'internationalization');
+      await user.keyboard('{ArrowDown}{Enter}');
+    });
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/settings/i18n');
     });
   });
 });

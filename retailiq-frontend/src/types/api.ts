@@ -1087,16 +1087,17 @@ export interface GetTranslationsResponse {
   catalog: Record<string, string>;
 }
 
-export interface GetSupportedCurrenciesResponse {
-  data: SupportedCurrency[];
-}
+export type GetSupportedCurrenciesResponse = SupportedCurrency[];
 
-export interface GetSupportedCountriesResponse {
-  data: SupportedCountry[];
-}
+export type GetSupportedCountriesResponse = SupportedCountry[];
 
 // ── Offline ──────────────────────────────────────────────────
-export type GetOfflineSnapshotResponse = OfflineSnapshot;
+export interface OfflineSnapshotBuildingResponse {
+  status: 'building';
+  message: string;
+}
+
+export type GetOfflineSnapshotResponse = OfflineSnapshot | OfflineSnapshotBuildingResponse;
 
 // ── Credit (standalone) ──────────────────────────────────────
 export type GetCreditAccountResponse = CreditAccount;

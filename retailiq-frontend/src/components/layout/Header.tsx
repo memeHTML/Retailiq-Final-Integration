@@ -32,6 +32,7 @@ const routeTitles: Record<string, string> = {
   [routes.developer]: 'Developer',
   [routes.team]: 'Team',
   [routes.ops]: 'Maintenance',
+  [routes.settingsI18n]: 'Internationalization',
   [routes.operations]: 'Operations',
   [routes.inventoryReceipts]: 'Receipts',
   [routes.inventoryBarcodes]: 'Barcodes',
@@ -78,6 +79,7 @@ export function Header({ onOpenPalette }: HeaderProps) {
     if (pathname.startsWith(routes.kyc)) return 'KYC';
     if (pathname.startsWith(routes.team)) return 'Team';
     if (pathname.startsWith(routes.ops)) return 'Maintenance';
+    if (pathname.startsWith(routes.settingsI18n)) return 'Internationalization';
     if (pathname.startsWith(routes.storeCategories)) return 'Store Categories';
     if (pathname.startsWith(routes.storeTaxConfig)) return 'Tax Config';
     if (pathname.startsWith(routes.storeProfile)) return 'Store Profile';

@@ -37,6 +37,8 @@ vi.mock('@/pages/Developer', () => ({ default: page('Developer') }));
 vi.mock('@/pages/Kyc', () => ({ default: page('KYC') }));
 vi.mock('@/pages/Team', () => ({ default: page('Team') }));
 vi.mock('@/pages/Ops', () => ({ default: page('Maintenance') }));
+vi.mock('@/pages/I18n', () => ({ default: page('Internationalization') }));
+vi.mock('@/pages/FinancialCalendar', () => ({ default: page('Financial Calendar') }));
 vi.mock('@/pages/Operations', () => ({ default: page('Operations hub') }));
 
 const mockedAuthStore = authStore as unknown as { getState: () => { isAuthenticated: boolean; role: 'owner' | 'staff' } };
@@ -74,6 +76,8 @@ describe('router operations redirects', () => {
     ['/kyc', '/operations/kyc', 'KYC page /operations/kyc'],
     ['/team', '/operations/team', 'Team page /operations/team'],
     ['/ops', '/operations/maintenance', 'Maintenance page /operations/maintenance'],
+    ['/i18n', '/settings/i18n', 'Internationalization page /settings/i18n'],
+    ['/events', '/financial-calendar', 'Financial Calendar page /financial-calendar'],
   ])('redirects %s to %s', async (initialEntry, canonicalPath, pageText) => {
     renderRouter(initialEntry);
 
@@ -86,6 +90,8 @@ describe('router operations redirects', () => {
     ['/operations/kyc', 'KYC page /operations/kyc'],
     ['/operations/team', 'Team page /operations/team'],
     ['/operations/maintenance', 'Maintenance page /operations/maintenance'],
+    ['/settings/i18n', 'Internationalization page /settings/i18n'],
+    ['/financial-calendar', 'Financial Calendar page /financial-calendar'],
   ])('renders %s once authenticated', async (initialEntry, pageText) => {
     renderRouter(initialEntry);
 
@@ -106,5 +112,21 @@ describe('router operations redirects', () => {
     expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
     expect(screen.queryAllByText('Developer page /operations/developer').length).toBe(0);
     expect(screen.queryAllByText('Operations hub page /operations').length).toBe(0);
+  });
+
+  it('blocks i18n alias access when unauthenticated', async () => {
+    mockedAuthStore.getState().isAuthenticated = false;
+    renderRouter('/i18n');
+
+    expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Internationalization page /settings/i18n').length).toBe(0);
+  });
+
+  it('blocks events alias access when unauthenticated', async () => {
+    mockedAuthStore.getState().isAuthenticated = false;
+    renderRouter('/events');
+
+    expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Financial Calendar page /financial-calendar').length).toBe(0);
   });
 });

@@ -20,7 +20,6 @@ import {
   DecisionsPage,
   DeveloperPage,
   EInvoicingPage,
-  EventsPage,
   FinancePage,
   FinancialCalendarPage,
   ForbiddenPage,
@@ -87,6 +86,8 @@ export const appRoutes = [
   { path: routes.kycLegacy, element: <Navigate to={routes.kyc} replace /> },
   { path: routes.teamLegacy, element: <Navigate to={routes.team} replace /> },
   { path: routes.opsLegacy, element: <Navigate to={routes.ops} replace /> },
+  { path: routes.i18n, element: <Navigate to={routes.settingsI18n} replace /> },
+  { path: routes.events, element: <Navigate to={routes.financialCalendar} replace /> },
   {
     element: <Outlet />,
     children: [
@@ -165,10 +166,9 @@ export const appRoutes = [
               { path: routes.chain, element: suspense(<ChainPage />) },
               { path: routes.chainLegacy, element: <Navigate to={routes.chain} replace /> },
               { path: routes.whatsapp, element: suspense(<WhatsAppPage />) },
-              { path: routes.i18n, element: suspense(<I18nPage />) },
+              { path: routes.settingsI18n, element: suspense(<I18nPage />) },
               { path: routes.analytics, element: suspense(<RoleGuard role="owner"><AnalyticsPage /></RoleGuard>) },
               { path: routes.marketIntelligence, element: suspense(<RoleGuard role="owner"><MarketIntelligencePage /></RoleGuard>) },
-              { path: routes.events, element: suspense(<EventsPage />) },
               { path: routes.financeGst, element: suspense(<GstPage />) },
               { path: routes.gst, element: <Navigate to={routes.financeGst} replace /> },
               { path: routes.loyalty, element: suspense(<LoyaltyPage />) },

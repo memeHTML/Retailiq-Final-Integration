@@ -120,7 +120,7 @@ const navGroups: NavGroup[] = [
     title: 'Settings',
     items: [
       { label: 'Store Profile', to: routes.storeProfile, icon: Store, ownerOnly: true },
-      { label: 'i18n', to: routes.i18n, icon: Globe2 },
+      { label: 'Internationalization', to: routes.settingsI18n, icon: Globe2 },
     ],
   },
 ];

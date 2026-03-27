@@ -63,6 +63,7 @@ export const routes = {
   staffDetail: '/staff-performance/:userId',
   events: '/events',
   offline: '/offline',
+  settingsI18n: '/settings/i18n',
   i18n: '/i18n',
   ops: '/operations/maintenance',
   opsLegacy: '/ops',

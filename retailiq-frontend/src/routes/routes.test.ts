@@ -23,6 +23,8 @@ describe('route registry', () => {
     expect(routes.marketplace).toBe('/orders/marketplace');
     expect(routes.chain).toBe('/operations/chain');
     expect(routes.storeProfile).toBe('/store/profile');
+    expect(routes.financialCalendar).toBe('/financial-calendar');
+    expect(routes.settingsI18n).toBe('/settings/i18n');
   });
 
   it('retains compatibility aliases for legacy routes', () => {
@@ -48,10 +50,21 @@ describe('route registry', () => {
     expect(routes.teamLegacy).toBe('/team');
     expect(routes.ops).toBe('/operations/maintenance');
     expect(routes.opsLegacy).toBe('/ops');
+    expect(routes.events).toBe('/events');
+    expect(routes.i18n).toBe('/i18n');
   });
 
   it('does not hardcode canonical route strings in page navigation files', () => {
-    const pageFiles = ['Login.tsx', 'Register.tsx', 'VerifyOtp.tsx', 'MfaSetup.tsx', 'VisionOcrUpload.tsx'];
+    const pageFiles = [
+      'Login.tsx',
+      'Register.tsx',
+      'VerifyOtp.tsx',
+      'MfaSetup.tsx',
+      'VisionOcrUpload.tsx',
+      'I18n.tsx',
+      'FinancialCalendar.tsx',
+      'Offline.tsx',
+    ];
     const forbiddenPatterns = ['/dashboard', '/login', '/register', '/verify-otp', '/mfa-setup', '/mfa-verify', '/vision/ocr/'];
     const pageDir = join(process.cwd(), 'src', 'pages');
 
