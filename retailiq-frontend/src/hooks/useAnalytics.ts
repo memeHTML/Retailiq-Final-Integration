@@ -1,80 +1,71 @@
 import { useQuery } from '@tanstack/react-query';
-import { analyticsApi } from '@/api/analytics';
+import { analyticsApi, analyticsKeys } from '@/api/analytics';
+import type { AnalyticsWindowInput } from '@/types/analytics';
 
-export const analyticsKeys = {
-  all: ['analytics'] as const,
-  dashboard: (period = '30d') => [...analyticsKeys.all, 'dashboard', period] as const,
-  revenue: (period = '30d') => [...analyticsKeys.all, 'revenue', period] as const,
-  profit: (period = '30d') => [...analyticsKeys.all, 'profit', period] as const,
-  topProducts: () => [...analyticsKeys.all, 'top-products'] as const,
-  categoryBreakdown: () => [...analyticsKeys.all, 'category-breakdown'] as const,
-  paymentModes: () => [...analyticsKeys.all, 'payment-modes'] as const,
-  contribution: () => [...analyticsKeys.all, 'contribution'] as const,
-  customerSummary: () => [...analyticsKeys.all, 'customer-summary'] as const,
-  diagnostics: () => [...analyticsKeys.all, 'diagnostics'] as const,
-};
+export { analyticsKeys } from '@/api/analytics';
 
-export const useAnalyticsDashboard = (period = '30d') =>
+export const useAnalyticsDashboard = (scope?: AnalyticsWindowInput) =>
   useQuery({
-    queryKey: analyticsKeys.dashboard(period),
-    queryFn: () => analyticsApi.getAnalyticsDashboard(period),
+    queryKey: analyticsKeys.dashboard(scope),
+    queryFn: () => analyticsApi.getAnalyticsDashboard(scope),
     staleTime: 30_000,
   });
 
-export const useRevenue = (period = '30d') =>
+export const useRevenue = (scope?: AnalyticsWindowInput) =>
   useQuery({
-    queryKey: analyticsKeys.revenue(period),
-    queryFn: () => analyticsApi.getRevenue(period),
+    queryKey: analyticsKeys.revenue(scope),
+    queryFn: () => analyticsApi.getRevenue(scope),
     staleTime: 30_000,
   });
 
-export const useProfit = (period = '30d') =>
+export const useProfit = (scope?: AnalyticsWindowInput) =>
   useQuery({
-    queryKey: analyticsKeys.profit(period),
-    queryFn: () => analyticsApi.getProfit(period),
+    queryKey: analyticsKeys.profit(scope),
+    queryFn: () => analyticsApi.getProfit(scope),
     staleTime: 30_000,
   });
 
-export const useTopProducts = () =>
+export const useTopProducts = (scope?: AnalyticsWindowInput, options: { limit?: number; metric?: 'revenue' | 'quantity' | 'profit' } = {}) =>
   useQuery({
-    queryKey: analyticsKeys.topProducts(),
-    queryFn: () => analyticsApi.getTopProducts(),
+    queryKey: [...analyticsKeys.topProducts(scope), options.limit ?? 10, options.metric ?? 'revenue'] as const,
+    queryFn: () => analyticsApi.getTopProducts(scope, options),
     staleTime: 30_000,
   });
 
-export const useCategoryBreakdown = () =>
+export const useCategoryBreakdown = (scope?: AnalyticsWindowInput) =>
   useQuery({
-    queryKey: analyticsKeys.categoryBreakdown(),
-    queryFn: () => analyticsApi.getCategoryBreakdown(),
+    queryKey: analyticsKeys.categoryBreakdown(scope),
+    queryFn: () => analyticsApi.getCategoryBreakdown(scope),
     staleTime: 30_000,
   });
 
-export const usePaymentModes = () =>
+export const usePaymentModes = (scope?: AnalyticsWindowInput) =>
   useQuery({
-    queryKey: analyticsKeys.paymentModes(),
-    queryFn: () => analyticsApi.getPaymentModes(),
+    queryKey: analyticsKeys.paymentModes(scope),
+    queryFn: () => analyticsApi.getPaymentModes(scope),
     staleTime: 30_000,
   });
 
-export const useContribution = () =>
+export const useCustomerSummaryAnalytics = (scope?: AnalyticsWindowInput) =>
   useQuery({
-    queryKey: analyticsKeys.contribution(),
-    queryFn: () => analyticsApi.getContribution(),
+    queryKey: analyticsKeys.customerSummary(scope),
+    queryFn: () => analyticsApi.getCustomerSummaryAnalytics(scope),
     staleTime: 30_000,
   });
 
-export const useCustomerSummaryAnalytics = () =>
+export const useAnalyticsDiagnostics = (scope?: AnalyticsWindowInput) =>
   useQuery({
-    queryKey: analyticsKeys.customerSummary(),
-    queryFn: () => analyticsApi.getCustomerSummaryAnalytics(),
+    queryKey: analyticsKeys.diagnostics(scope),
+    queryFn: () => analyticsApi.getAnalyticsDiagnostics(scope),
     staleTime: 30_000,
   });
 
-export const useAnalyticsDiagnostics = () =>
+export const useContribution = (scope?: AnalyticsWindowInput) =>
   useQuery({
-    queryKey: analyticsKeys.diagnostics(),
-    queryFn: () => analyticsApi.getAnalyticsDiagnostics(),
+    queryKey: [...analyticsKeys.all, 'contribution', ...(scope ? [scope] : [])] as const,
+    queryFn: () => analyticsApi.getContribution(scope),
     staleTime: 30_000,
   });
 
 export default useAnalyticsDashboard;
+
