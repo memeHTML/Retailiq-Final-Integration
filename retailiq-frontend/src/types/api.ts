@@ -589,19 +589,76 @@ export interface CreateChainGroupRequest {
   name: string;
 }
 
-export type CreateChainGroupResponse = ChainGroup;
+export interface UpdateChainGroupRequest {
+  name?: string;
+}
+
+export interface ChainGroupResponse {
+  group_id: string;
+  name: string;
+  description: string | null;
+  owner_user_id: number;
+  created_at: string | null;
+  updated_at: string | null;
+  member_store_ids: number[];
+}
+
+export type CreateChainGroupResponse = ChainGroupResponse;
 
 export interface AddStoreToGroupRequest {
-  group_id: string;
   store_id: number;
+  manager_user_id?: number | null;
 }
 
 export interface AddStoreToGroupResponse {
-  message: string;
+  membership_id: string;
 }
 
-export interface ListChainDashboardResponse {
-  summary: Record<string, unknown>;
+export interface ChainDashboardResponse {
+  total_revenue_today: number;
+  best_store: Record<string, unknown> | null;
+  worst_store: Record<string, unknown> | null;
+  total_open_alerts: number;
+  per_store_today: Array<{
+    store_id: number;
+    name: string;
+    revenue: number;
+    transaction_count: number;
+    alert_count: number;
+  }>;
+  transfer_suggestions: Array<{
+    id: string;
+    from_store: number;
+    to_store: number;
+    product: number;
+    qty: number;
+    reason: string;
+  }>;
+}
+
+export interface ChainComparisonRow {
+  store_id: number;
+  revenue: number;
+  profit: number;
+  relative_to_avg: 'above' | 'below' | 'near';
+}
+
+export type ChainComparisonResponse = ChainComparisonRow[];
+
+export interface ChainTransferResponse {
+  id: string;
+  from_store: number;
+  to_store: number;
+  product: number;
+  qty: number;
+  reason: string;
+  status: string;
+  created_at: string | null;
+}
+
+export interface ConfirmTransferResponse {
+  message: string;
+  id: string;
 }
 
 export interface UpdateWhatsappConfigRequest {
@@ -857,51 +914,148 @@ export type GetEInvoiceStatusResponse = EInvoice;
 export interface MarketplaceSearchRequest {
   query?: string;
   category?: string;
+  price_min?: number;
+  price_max?: number;
+  supplier_rating_min?: number;
+  moq_max?: number;
+  sort_by?: string;
   page?: number;
-  page_size?: number;
+}
+
+export interface MarketplaceCatalogListing {
+  id: string;
+  sku: string | null;
+  name: string;
+  category: string | null;
+  unit_price: number;
+  moq: number;
+  supplier_profile_id: number;
 }
 
 export interface MarketplaceSearchResponse {
-  items: MarketplaceCatalogItem[];
+  items: MarketplaceCatalogListing[];
   total: number;
 }
 
-export type MarketplaceRecommendationsResponse = MarketplaceCatalogItem[];
+export interface MarketplaceRecommendation {
+  id: number;
+  product_name: string;
+  category: string | null;
+  urgency: string;
+  suggested_qty: number;
+  suggested_supplier_id: number | null;
+}
 
 export interface CreateRfqRequest {
-  product_name: string;
-  quantity: number;
-  specifications?: string;
+  items: Array<{
+    category?: string;
+    description?: string;
+    quantity: number;
+    catalog_item_id?: number | string;
+    unit_price?: number;
+    supplier_profile_id?: number | string;
+  }>;
 }
 
-export type CreateRfqResponse = MarketplaceRfq;
-export type GetRfqResponse = MarketplaceRfq;
+export interface CreateRfqResponse {
+  rfq_id: number;
+  status: string;
+}
+
+export interface GetRfqResponse {
+  id: number;
+  items: Array<Record<string, unknown>>;
+  status: string;
+  matched_suppliers_count: number;
+  created_at: string;
+  responses: Array<{
+    id: number;
+    supplier_profile_id: number;
+    quoted_items: Array<Record<string, unknown>>;
+    total_price: number;
+    delivery_days: number | null;
+    status: string;
+  }>;
+}
 
 export interface CreateMarketplaceOrderRequest {
-  items: Array<{ catalog_item_id: string; quantity: number }>;
-  shipping_address?: string;
+  supplier_id: number | string;
+  items: Array<{ catalog_item_id: number | string; quantity: number }>;
+  payment_terms?: string;
+  finance_requested?: boolean;
 }
 
-export type CreateMarketplaceOrderResponse = MarketplaceOrder;
+export interface CreateMarketplaceOrderResponse {
+  order_id: number;
+  order_number: string;
+  total: number;
+  status: string;
+  financing_decision: string | null;
+}
 
 export interface ListMarketplaceOrdersResponse {
-  orders: MarketplaceOrder[];
+  orders: Array<{
+    id: number;
+    order_number: string;
+    supplier_profile_id: number;
+    status: string;
+    total: number;
+    payment_status: string;
+    financed: boolean;
+    created_at: string;
+    expected_delivery: string | null;
+  }>;
   total: number;
+  page: number;
+  pages: number;
 }
 
-export type GetMarketplaceOrderResponse = MarketplaceOrder;
-export type GetMarketplaceTrackingResponse = MarketplaceTracking;
+export interface GetMarketplaceOrderResponse {
+  id: number;
+  order_number: string;
+  supplier_profile_id: number;
+  status: string;
+  subtotal: number;
+  tax: number;
+  shipping_cost: number;
+  total: number;
+  payment_status: string;
+  financed: boolean;
+  loan_id: number | null;
+  created_at: string;
+  expected_delivery: string | null;
+  shipping_tracking: Record<string, unknown> | null;
+  items: Array<{
+    catalog_item_id: number;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+  }>;
+}
+
+export interface GetMarketplaceTrackingResponse {
+  status: string;
+  tracking_events: Array<{
+    timestamp: string;
+    status: string;
+    location: string;
+    description: string;
+  }>;
+  estimated_delivery?: string | null;
+  logistics_provider?: string | null;
+}
 
 export interface SupplierOnboardRequest {
-  company_name: string;
-  contact_name: string;
-  email: string;
-  phone: string;
+  supplier_id?: number | string;
+  business_name?: string;
+  business_type?: string;
+  categories?: string[];
+  payment_terms?: Record<string, unknown> | string[] | null;
 }
 
 export interface SupplierOnboardResponse {
-  supplier_id: string;
-  status: string;
+  id: number;
+  business_name: string;
 }
 
 // ── NLP / AI ─────────────────────────────────────────────────

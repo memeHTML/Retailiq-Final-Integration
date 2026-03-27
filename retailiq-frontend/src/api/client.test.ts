@@ -4,11 +4,13 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { apiClient, apiPostForm, requestWithFallback } from './client';
 import { normalizeApiError } from '@/utils/errors';
 
+type MockAuthUser = { role: string } | null;
+
 const mocks = vi.hoisted(() => {
   const state = {
-    accessToken: 'expired-access',
+    accessToken: 'expired-access' as string | null,
     refreshToken: null as string | null,
-    user: null,
+    user: null as MockAuthUser,
     role: 'owner' as const,
     setTokens: vi.fn(),
     setUser: vi.fn(),
@@ -17,7 +19,7 @@ const mocks = vi.hoisted(() => {
 
   return {
     authState: state,
-    getStoredRefreshToken: vi.fn(() => 'stored-refresh-token'),
+    getStoredRefreshToken: vi.fn(() => state.refreshToken ?? 'stored-refresh-token'),
     clearStoredRefreshToken: vi.fn(),
     setStoredRefreshToken: vi.fn(),
     redirectAssign: vi.fn(),
@@ -39,6 +41,26 @@ vi.mock('@/utils/tokenStorage', () => ({
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
+  mocks.authState.accessToken = 'expired-access';
+  mocks.authState.refreshToken = null;
+  mocks.authState.user = null;
+  mocks.authState.role = 'owner';
+  mocks.authState.setTokens = vi.fn((accessToken: string, refreshToken: string) => {
+    mocks.authState.accessToken = accessToken;
+    mocks.authState.refreshToken = refreshToken;
+  });
+  mocks.authState.setUser = vi.fn((user: MockAuthUser) => {
+    mocks.authState.user = user;
+    if (user) {
+      mocks.authState.role = 'owner';
+    }
+  });
+  mocks.authState.clearAuth = vi.fn(() => {
+    mocks.authState.accessToken = null;
+    mocks.authState.refreshToken = null;
+    mocks.authState.user = null;
+    mocks.authState.role = 'owner';
+  });
 });
 
 function getResponseRejectedHandler() {
@@ -93,6 +115,75 @@ describe('api client transport', () => {
     expect(mocks.authState.setTokens).toHaveBeenCalledWith('new-access', 'new-refresh');
     expect(requestSpy).toHaveBeenCalledWith(expect.objectContaining({ url: '/api/v1/vision/ocr/upload', method: 'POST' }));
     expect(result).toEqual({ data: { ok: true } });
+    expect(mocks.authState.refreshToken).toBe('new-refresh');
+  });
+
+  it('uses the rotated refresh token on subsequent 401 retries', async () => {
+    const rejected = getResponseRejectedHandler();
+    const refreshSpy = vi.spyOn(axios, 'post').mockResolvedValue({
+      data: {
+        access_token: 'new-access',
+        refresh_token: 'new-refresh',
+        user_id: 1,
+        role: 'owner',
+        store_id: 2,
+      },
+    });
+    const requestSpy = vi.spyOn(apiClient, 'request').mockResolvedValue({ data: { ok: true } } as never);
+
+    const formData = new FormData();
+    formData.append('invoice_image', new Blob(['hello'], { type: 'text/plain' }), 'invoice.txt');
+
+    await rejected({
+      isAxiosError: true,
+      response: {
+        status: 401,
+        data: { message: 'Unauthorized' },
+      },
+      config: {
+        url: '/api/v1/vision/ocr/upload',
+        method: 'POST',
+        data: formData,
+        headers: {},
+      },
+    });
+
+    await rejected({
+      isAxiosError: true,
+      response: {
+        status: 401,
+        data: { message: 'Unauthorized' },
+      },
+      config: {
+        url: '/api/v1/vision/ocr/upload',
+        method: 'POST',
+        data: formData,
+        headers: {},
+      },
+    });
+
+    expect(refreshSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('/api/v1/auth/refresh'),
+      { refresh_token: 'stored-refresh-token' },
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+      }),
+    );
+    expect(refreshSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/api/v1/auth/refresh'),
+      { refresh_token: 'new-refresh' },
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+      }),
+    );
+    expect(mocks.authState.refreshToken).toBe('new-refresh');
+    expect(requestSpy).toHaveBeenCalledTimes(2);
   });
 
   it('does not force a multipart content type before the request interceptor runs', async () => {

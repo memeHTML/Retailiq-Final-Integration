@@ -37,6 +37,8 @@ const routeTitles: Record<string, string> = {
   [routes.inventoryVisionReview]: 'Vision OCR',
   [routes.suppliers]: 'Suppliers',
   [routes.purchaseOrders]: 'Purchase Orders',
+  [routes.marketplace]: 'Marketplace',
+  [routes.chain]: 'Chain Management',
   [routes.marketIntelligence]: 'Market Intelligence',
   [routes.einvoice]: 'E-Invoicing',
   [routes.ai]: 'AI Assistant',
@@ -79,6 +81,8 @@ export function Header({ onOpenPalette }: HeaderProps) {
     if (pathname.startsWith(routes.inventoryVision)) return 'Vision OCR';
     if (pathname.startsWith(routes.suppliers)) return 'Suppliers';
     if (pathname.startsWith(routes.purchaseOrders)) return 'Purchase Orders';
+    if (pathname.startsWith(routes.marketplace)) return 'Marketplace';
+    if (pathname.startsWith(routes.chain)) return 'Chain Management';
     if (pathname.startsWith(routes.transactions)) return 'Transactions';
     if (pathname.startsWith(routes.returns)) return 'Returns';
     if (pathname.startsWith(routes.customers)) return 'Customers';

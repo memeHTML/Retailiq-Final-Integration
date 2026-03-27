@@ -20,6 +20,8 @@ describe('route registry', () => {
     expect(routes.inventoryVisionReview).toBe('/inventory/vision/:jobId');
     expect(routes.receiptsQueue).toBe('/receipts/queue');
     expect(routes.visionOcr).toBe('/vision/ocr');
+    expect(routes.marketplace).toBe('/orders/marketplace');
+    expect(routes.chain).toBe('/operations/chain');
     expect(routes.storeProfile).toBe('/store/profile');
   });
 
@@ -35,6 +37,8 @@ describe('route registry', () => {
     expect(routes.inventoryReceipts).toBe('/inventory/receipts');
     expect(routes.inventoryBarcodes).toBe('/inventory/barcodes');
     expect(routes.inventoryVision).toBe('/inventory/vision');
+    expect(routes.marketplaceLegacy).toBe('/marketplace');
+    expect(routes.chainLegacy).toBe('/chain');
   });
 
   it('does not hardcode canonical route strings in page navigation files', () => {

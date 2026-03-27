@@ -27,6 +27,7 @@ const commandItems: CommandItem[] = [
   { label: 'Suppliers', description: 'Supplier records and product links', to: routes.suppliers },
   { label: 'Purchase Orders', description: 'Drafts, receiving, and PDF export', to: routes.purchaseOrders },
   { label: 'Marketplace', description: 'Supplier marketplace tools', to: routes.marketplace },
+  { label: 'Chain Management', description: 'Multi-store groups and transfers', to: routes.chain },
   { label: 'Customers', description: 'Customer records', to: routes.customers },
   { label: 'Loyalty', description: 'Rewards program', to: routes.loyalty },
   { label: 'Credit', description: 'Customer credit accounts', to: routes.credit },

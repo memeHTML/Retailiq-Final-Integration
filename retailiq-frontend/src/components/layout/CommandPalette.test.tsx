@@ -1,11 +1,14 @@
 /* @vitest-environment jsdom */
+import { act } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommandPalette } from './CommandPalette';
 
 const navigateMock = vi.fn();
+const consoleErrorSpy = vi.spyOn(console, 'error');
+let unexpectedConsoleErrors: string[] = [];
 
 class ResizeObserverMock {
   observe() {}
@@ -31,6 +34,25 @@ describe('CommandPalette', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    unexpectedConsoleErrors = [];
+    consoleErrorSpy.mockImplementation((...args: unknown[]) => {
+      const message = args.map((value) => String(value)).join(' ');
+      if (
+        (message.includes('wrapped in act(...)') && message.includes('cmdk/dist/index.mjs')) ||
+        (message.includes('wrapped in act(...)') && message.includes('CommandPalette'))
+      ) {
+        return;
+      }
+      unexpectedConsoleErrors.push(message);
+    });
+  });
+
+  afterEach(() => {
+    expect(unexpectedConsoleErrors).toEqual([]);
+  });
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('supports keyboard selection and stores recent items', async () => {
@@ -44,8 +66,10 @@ describe('CommandPalette', () => {
 
     expect(screen.getByRole('dialog', { name: /quick search/i })).toBeTruthy();
     const input = screen.getByPlaceholderText(/search pages and actions/i);
-    await user.type(input, 'intelligence');
-    await user.keyboard('{ArrowDown}{Enter}');
+    await act(async () => {
+      await user.type(input, 'intelligence');
+      await user.keyboard('{ArrowDown}{Enter}');
+    });
 
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/market-intelligence');
@@ -64,7 +88,9 @@ describe('CommandPalette', () => {
       </MemoryRouter>,
     );
 
-    await user.keyboard('{Escape}');
+    await act(async () => {
+      await user.keyboard('{Escape}');
+    });
     await waitFor(() => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
