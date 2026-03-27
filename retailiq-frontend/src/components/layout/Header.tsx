@@ -18,6 +18,12 @@ const titleMap: Record<string, string> = {
   [routes.customers]: 'Customers',
   [routes.analytics]: 'Analytics',
   [routes.finance]: 'Financials',
+  [routes.financeAccounts]: 'Accounts',
+  [routes.financeCreditScore]: 'Credit Score',
+  [routes.financeKyc]: 'Finance KYC',
+  [routes.financeLedger]: 'Ledger',
+  [routes.financeTreasury]: 'Treasury',
+  [routes.financeLoans]: 'Loans',
   [routes.security]: 'Security / MFA',
   [routes.settings]: 'Store Profile',
   [routes.pricing]: 'Pricing',
@@ -75,6 +81,12 @@ export function Header({ onOpenPalette, onMenuClick, storeName }: HeaderProps) {
     if (pathname.startsWith('/market-intelligence')) return 'Market Intelligence';
     if (pathname.startsWith('/e-invoicing')) return 'E-Invoicing';
     if (pathname.startsWith('/ai-assistant')) return 'AI Assistant';
+    if (pathname.startsWith('/finance/accounts')) return 'Accounts';
+    if (pathname.startsWith('/finance/credit-score')) return 'Credit Score';
+    if (pathname.startsWith('/finance/kyc')) return 'Finance KYC';
+    if (pathname.startsWith('/finance/ledger')) return 'Ledger';
+    if (pathname.startsWith('/finance/treasury')) return 'Treasury';
+    if (pathname.startsWith('/finance/loans')) return 'Loans';
     if (pathname.startsWith('/security')) return 'Security / MFA';
     if (pathname.startsWith('/financial-calendar')) return 'Financial Calendar';
     const path = `/${pathname.split('/').filter(Boolean)[0] ?? 'dashboard'}`;
@@ -94,6 +106,12 @@ export function Header({ onOpenPalette, onMenuClick, storeName }: HeaderProps) {
     if (pathname.startsWith('/orders/transactions')) return ['Orders', 'Transactions'];
     if (pathname.startsWith('/customers')) return ['Customers'];
     if (pathname.startsWith('/analytics')) return ['Analytics'];
+    if (pathname.startsWith('/finance/accounts')) return ['Financials', 'Accounts'];
+    if (pathname.startsWith('/finance/credit-score')) return ['Financials', 'Credit Score'];
+    if (pathname.startsWith('/finance/kyc')) return ['Financials', 'Finance KYC'];
+    if (pathname.startsWith('/finance/ledger')) return ['Financials', 'Ledger'];
+    if (pathname.startsWith('/finance/treasury')) return ['Financials', 'Treasury'];
+    if (pathname.startsWith('/finance/loans')) return ['Financials', 'Loans'];
     if (pathname.startsWith('/finance')) return ['Financials'];
     if (pathname.startsWith('/store')) return ['Settings', 'Store Profile'];
     return [title];

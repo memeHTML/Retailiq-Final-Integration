@@ -20,6 +20,9 @@ const items: CommandItem[] = [
   { label: 'Customers', description: 'Customer records', to: routes.customers },
   { label: 'Analytics', description: 'Reports and insights', to: routes.analytics },
   { label: 'Financials', description: 'Ledger and treasury', to: routes.finance },
+  { label: 'Finance Accounts', description: 'Financial account list', to: routes.financeAccounts },
+  { label: 'Finance Credit Score', description: 'Merchant credit score', to: routes.financeCreditScore },
+  { label: 'Finance KYC', description: 'Compliance status', to: routes.financeKyc },
   { label: 'AI Assistant', description: 'Ask the assistant', to: routes.ai },
   { label: 'Store Profile', description: 'Business settings', to: routes.settings },
 ];

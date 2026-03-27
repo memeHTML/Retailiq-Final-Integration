@@ -74,6 +74,9 @@ const navGroups: NavGroup[] = [
     title: 'Financials',
     items: [
       { label: 'Finance Dashboard', to: routes.finance, icon: CircleDollarSign },
+      { label: 'Accounts', to: routes.financeAccounts, icon: Building2, ownerOnly: true },
+      { label: 'Credit Score', to: routes.financeCreditScore, icon: ShieldCheck, ownerOnly: true },
+      { label: 'Finance KYC', to: routes.financeKyc, icon: ShieldCheck, ownerOnly: true },
       { label: 'Ledger', to: routes.financeLedger, icon: FileText, ownerOnly: true },
       { label: 'Treasury', to: routes.financeTreasury, icon: Store, ownerOnly: true },
       { label: 'Loans', to: routes.financeLoans, icon: FolderKanban, ownerOnly: true },

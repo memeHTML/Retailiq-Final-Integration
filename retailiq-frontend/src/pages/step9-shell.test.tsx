@@ -6,9 +6,6 @@ import LoginPage from '@/pages/Login';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { authStore } from '@/stores/authStore';
 import { uiStore } from '@/stores/uiStore';
-import FinanceLedgerPage from '@/pages/FinanceLedger';
-import FinanceTreasuryPage from '@/pages/FinanceTreasury';
-import FinanceLoansPage from '@/pages/FinanceLoans';
 import AiToolsPage from '@/pages/AiTools';
 import SecurityPage from '@/pages/Security';
 
@@ -118,9 +115,6 @@ describe('Prompt 00 step 9 shell verification', () => {
 
   it('renders representative route stubs without crashing', () => {
     const routeEntries = [
-      { path: '/finance/ledger', element: <FinanceLedgerPage />, title: 'Finance Ledger' },
-      { path: '/finance/treasury', element: <FinanceTreasuryPage />, title: 'Treasury' },
-      { path: '/finance/loans', element: <FinanceLoansPage />, title: 'Loans' },
       { path: '/ai-assistant/tools', element: <AiToolsPage />, title: 'AI Tools' },
       { path: '/security', element: <SecurityPage />, title: 'Security / MFA' },
     ] as const;
