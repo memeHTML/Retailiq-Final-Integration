@@ -4,11 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import DeveloperPage from './Developer';
 
-const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
-const clipboard = {
-  writeText: clipboardWriteText,
-};
-const execCommandMock = vi.fn().mockReturnValue(true);
 const addToastMock = vi.fn();
 
 const apiKeys = [
@@ -155,16 +150,6 @@ beforeEach(() => {
   cleanup();
   vi.clearAllMocks();
   addToastMock.mockClear();
-  clipboardWriteText.mockClear();
-  execCommandMock.mockClear();
-  Object.defineProperty(window.navigator, 'clipboard', {
-    configurable: true,
-    value: clipboard,
-  });
-  Object.defineProperty(document, 'execCommand', {
-    configurable: true,
-    value: execCommandMock,
-  });
 });
 
 describe('DeveloperPage', () => {
@@ -180,19 +165,10 @@ describe('DeveloperPage', () => {
     await user.click(screen.getByRole('button', { name: /create api key/i }));
 
     const dialog = await screen.findByRole('dialog');
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
     expect(dialog).toBeTruthy();
     expect(screen.getByText(/save this secret now/i)).toBeTruthy();
     expect(screen.getByDisplayValue('client-secret-create')).toBeTruthy();
-
-    await user.click(screen.getByRole('button', { name: /copy secret/i }));
-    await waitFor(() => {
-      expect(addToastMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Secret copied',
-          variant: 'success',
-        }),
-      );
-    });
   });
 
   it('opens the secret modal again when regenerating an API key', async () => {

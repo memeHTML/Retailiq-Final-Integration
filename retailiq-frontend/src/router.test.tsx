@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import { useLocation, useRoutes, MemoryRouter } from 'react-router-dom';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from './router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -64,6 +64,7 @@ function renderRouter(initialEntry: string) {
 
 describe('router operations redirects', () => {
   beforeEach(() => {
+    cleanup();
     mockedAuthStore.getState().isAuthenticated = true;
     mockedAuthStore.getState().role = 'owner';
   });
@@ -96,5 +97,14 @@ describe('router operations redirects', () => {
     renderRouter('/operations/developer');
 
     expect(await screen.findByText('Login page /login')).toBeTruthy();
+  });
+
+  it('sends legacy aliases to login when unauthenticated', async () => {
+    mockedAuthStore.getState().isAuthenticated = false;
+    renderRouter('/developer');
+
+    expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Developer page /operations/developer').length).toBe(0);
+    expect(screen.queryAllByText('Operations hub page /operations').length).toBe(0);
   });
 });
