@@ -11,6 +11,13 @@ type CommandItem = {
   to: string;
 };
 
+const aliasToCanonicalPath: Record<string, string> = {
+  [routes.developerLegacy]: routes.developer,
+  [routes.kycLegacy]: routes.kyc,
+  [routes.teamLegacy]: routes.team,
+  [routes.opsLegacy]: routes.ops,
+};
+
 const commandItems: CommandItem[] = [
   { label: 'Dashboard', description: 'Overview and KPIs', to: routes.dashboard },
   { label: 'Smart Alerts', description: 'Critical store alerts', to: routes.smartAlerts },
@@ -42,8 +49,19 @@ const commandItems: CommandItem[] = [
   { label: 'Store Categories', description: 'Category management', to: routes.storeCategories },
   { label: 'Tax Config', description: 'Store tax rules', to: routes.storeTaxConfig },
   { label: 'MFA', description: 'Security and verification setup', to: routes.mfa },
-  { label: 'Operations', description: 'Ops and maintenance tooling', to: routes.operations },
+  { label: 'Operations Hub', description: 'Overview of operations workflows', to: routes.operations },
+  { label: 'Developer Platform', description: 'API keys, webhooks, usage, logs, and rate limits', to: routes.developer },
+  { label: 'KYC', description: 'Provider verification and status', to: routes.kyc },
+  { label: 'Team', description: 'Team connectivity checks', to: routes.team },
+  { label: 'Maintenance', description: 'System status and incidents', to: routes.ops },
 ];
+
+const commandItemsByPath = new Map(commandItems.map((item) => [item.to, item]));
+
+const canonicalCommandItemForPath = (path: string): CommandItem | null => {
+  const canonicalPath = aliasToCanonicalPath[path] ?? path;
+  return commandItemsByPath.get(canonicalPath) ?? null;
+};
 
 interface CommandPaletteProps {
   open: boolean;
@@ -77,8 +95,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         return;
       }
 
-      const parsed = JSON.parse(raw) as CommandItem[];
-      setRecentItems(Array.isArray(parsed) ? parsed.filter((item) => item && item.to) : []);
+      const parsed = JSON.parse(raw) as Array<Partial<CommandItem> | null | undefined>;
+      const canonicalRecents = Array.isArray(parsed)
+        ? parsed
+            .map((item) => (item?.to ? canonicalCommandItemForPath(item.to) : null))
+            .filter((item): item is CommandItem => Boolean(item))
+            .filter((item, index, items) => items.findIndex((recent) => recent.to === item.to) === index)
+        : [];
+      setRecentItems(canonicalRecents);
+      window.localStorage.setItem(COMMAND_PALETTE_RECENTS_KEY, JSON.stringify(canonicalRecents));
     } catch {
       setRecentItems([]);
     }

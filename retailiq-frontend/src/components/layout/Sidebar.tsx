@@ -25,6 +25,7 @@ import {
   Store,
   Users,
   Webhook,
+  Wrench,
   Zap,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
@@ -108,9 +109,11 @@ const navGroups: NavGroup[] = [
     title: 'Operations',
     items: [
       { label: 'Chain Management', to: routes.chain, icon: Store },
+      { label: 'Operations', to: routes.operations, icon: Building2 },
       { label: 'Developer Platform', to: routes.developer, icon: Zap },
       { label: 'KYC', to: routes.kyc, icon: ShieldCheck },
-      { label: 'Operations', to: routes.operations, icon: Building2 },
+      { label: 'Team', to: routes.team, icon: Users },
+      { label: 'Maintenance', to: routes.ops, icon: Wrench },
     ],
   },
   {

@@ -43,6 +43,7 @@ import {
   MfaVerifyPage,
   NotFoundPage,
   OfflinePage,
+  OpsPage,
   PosPage,
   ReportsPage,
   PricingPage,
@@ -68,6 +69,7 @@ import {
   SupplierCreatePage,
   SupplierEditPage,
   SupplierPage,
+  TeamPage,
   TransactionDetailPage,
   TransactionsPage,
   VerifyOtpPage,
@@ -80,7 +82,11 @@ const suspense = (element: ReactNode) => (
   <Suspense fallback={<div className="app-content">Loading…</div>}>{element}</Suspense>
 );
 
-export const router = createBrowserRouter([
+export const appRoutes = [
+  { path: routes.developerLegacy, element: <Navigate to={routes.developer} replace /> },
+  { path: routes.kycLegacy, element: <Navigate to={routes.kyc} replace /> },
+  { path: routes.teamLegacy, element: <Navigate to={routes.team} replace /> },
+  { path: routes.opsLegacy, element: <Navigate to={routes.ops} replace /> },
   {
     element: <Outlet />,
     children: [
@@ -141,7 +147,9 @@ export const router = createBrowserRouter([
               { path: routes.visionOcrReview, element: suspense(<VisionOcrReviewPage />) },
               { path: routes.kyc, element: suspense(<KycPage />) },
               { path: routes.developer, element: suspense(<DeveloperPage />) },
+              { path: routes.team, element: suspense(<TeamPage />) },
               { path: routes.operations, element: suspense(<OperationsPage />) },
+              { path: routes.ops, element: suspense(<OpsPage />) },
               { path: routes.apiValidation, element: suspense(<ApiValidationPage />) },
               { path: routes.customers, element: suspense(<CustomersPage />) },
               { path: routes.customerDetail, element: suspense(<CustomerDetailPage />) },
@@ -178,4 +186,6 @@ export const router = createBrowserRouter([
       },
     ],
   },
-]);
+];
+
+export const router = createBrowserRouter(appRoutes);

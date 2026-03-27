@@ -1,10 +1,11 @@
 /* @vitest-environment jsdom */
 import { act } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommandPalette } from './CommandPalette';
+import { COMMAND_PALETTE_RECENTS_KEY } from '@/lib/constants';
 
 const navigateMock = vi.fn();
 const consoleErrorSpy = vi.spyOn(console, 'error');
@@ -58,14 +59,14 @@ describe('CommandPalette', () => {
   it('supports keyboard selection and stores recent items', async () => {
     const user = userEvent.setup();
 
-    render(
+    const { container } = render(
       <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <CommandPalette open onOpenChange={vi.fn()} />
       </MemoryRouter>,
     );
 
     expect(screen.getByRole('dialog', { name: /quick search/i })).toBeTruthy();
-    const input = screen.getByPlaceholderText(/search pages and actions/i);
+    const input = within(container).getByPlaceholderText(/search pages and actions/i);
     await act(async () => {
       await user.type(input, 'intelligence');
       await user.keyboard('{ArrowDown}{Enter}');
@@ -93,6 +94,37 @@ describe('CommandPalette', () => {
     });
     await waitFor(() => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it('normalizes legacy recents and searches canonical operations destinations', async () => {
+    window.localStorage.setItem(
+      COMMAND_PALETTE_RECENTS_KEY,
+      JSON.stringify([{ label: 'Legacy Maintenance', description: 'Old entry', to: '/ops' }]),
+    );
+
+    const user = userEvent.setup();
+
+    const { container } = render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      const stored = JSON.parse(window.localStorage.getItem(COMMAND_PALETTE_RECENTS_KEY) ?? '[]') as Array<{ to: string }>;
+      expect(stored[0].to).toBe('/operations/maintenance');
+    });
+
+    const input = within(container).getByPlaceholderText(/search pages and actions/i);
+    await act(async () => {
+      await user.clear(input);
+      await user.type(input, 'team');
+      await user.keyboard('{ArrowDown}{Enter}');
+    });
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/operations/team');
     });
   });
 });

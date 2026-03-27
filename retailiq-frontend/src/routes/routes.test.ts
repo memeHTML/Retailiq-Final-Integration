@@ -39,6 +39,15 @@ describe('route registry', () => {
     expect(routes.inventoryVision).toBe('/inventory/vision');
     expect(routes.marketplaceLegacy).toBe('/marketplace');
     expect(routes.chainLegacy).toBe('/chain');
+    expect(routes.operations).toBe('/operations');
+    expect(routes.developer).toBe('/operations/developer');
+    expect(routes.developerLegacy).toBe('/developer');
+    expect(routes.kyc).toBe('/operations/kyc');
+    expect(routes.kycLegacy).toBe('/kyc');
+    expect(routes.team).toBe('/operations/team');
+    expect(routes.teamLegacy).toBe('/team');
+    expect(routes.ops).toBe('/operations/maintenance');
+    expect(routes.opsLegacy).toBe('/ops');
   });
 
   it('does not hardcode canonical route strings in page navigation files', () => {

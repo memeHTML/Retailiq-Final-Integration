@@ -27,6 +27,8 @@ export const VisionOcrUploadPage = lazy(() => import('@/pages/VisionOcrUpload'))
 export const VisionOcrReviewPage = lazy(() => import('@/pages/VisionOcrReview'));
 export const KycPage = lazy(() => import('@/pages/Kyc'));
 export const DeveloperPage = lazy(() => import('@/pages/Developer'));
+export const TeamPage = lazy(() => import('@/pages/Team'));
+export const OpsPage = lazy(() => import('@/pages/Ops'));
 export const MarketplacePage = lazy(() => import('@/pages/Marketplace'));
 export const ChainPage = lazy(() => import('@/pages/Chain'));
 export const WhatsAppPage = lazy(() => import('@/pages/WhatsApp'));

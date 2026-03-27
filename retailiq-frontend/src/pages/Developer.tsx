@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/Dialog';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -33,6 +34,11 @@ import { formatDate } from '@/utils/dates';
 
 type DeveloperTab = 'onboarding' | 'marketplace' | 'api-keys' | 'webhooks' | 'usage' | 'limits' | 'logs' | 'docs';
 
+type SecretModalState = {
+  title: string;
+  secret: string;
+};
+
 const parseCsv = (value: string) =>
   value
     .split(',')
@@ -42,6 +48,7 @@ const parseCsv = (value: string) =>
 export default function DeveloperPage() {
   const addToast = uiStore((state) => state.addToast);
   const [activeTab, setActiveTab] = useState<DeveloperTab>('onboarding');
+  const [secretModal, setSecretModal] = useState<SecretModalState | null>(null);
   const [registrationForm, setRegistrationForm] = useState({
     name: '',
     email: '',
@@ -96,6 +103,48 @@ export default function DeveloperPage() {
   const updateWebhookMutation = useUpdateWebhookMutation();
   const deleteWebhookMutation = useDeleteWebhookMutation();
   const testWebhookMutation = useTestWebhookMutation();
+
+  const openSecretModal = (title: string, secret: string) => {
+    const trimmedSecret = secret.trim();
+    if (!trimmedSecret) {
+      throw new Error('Developer API key response did not include a client_secret.');
+    }
+
+    setSecretModal({
+      title,
+      secret: trimmedSecret,
+    });
+  };
+
+  const closeSecretModal = () => {
+    setSecretModal(null);
+  };
+
+  const copySecret = async () => {
+    if (!secretModal) {
+      return;
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(secretModal.secret);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = secretModal.secret;
+        textarea.setAttribute('readonly', 'true');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      addToast({ title: 'Secret copied', message: 'The client secret was copied to your clipboard.', variant: 'success' });
+    } catch {
+      addToast({ title: 'Copy failed', message: 'Unable to copy the client secret.', variant: 'error' });
+    }
+  };
 
   const blockingError =
     apiKeysQuery.error ??
@@ -168,7 +217,8 @@ export default function DeveloperPage() {
             size="sm"
             onClick={() => {
               void regenerateApiKeyMutation.mutateAsync(apiKey.id).then((response) => {
-                addToast({ title: 'API key regenerated', message: response.key ? 'A new client secret was issued.' : 'Secret rotation completed.', variant: 'success' });
+                openSecretModal('API key regenerated', response.key);
+                addToast({ title: 'API key regenerated', message: 'A new client secret was issued.', variant: 'success' });
               }).catch((error) => {
                 addToast({ title: 'Regeneration failed', message: normalizeApiError(error).message, variant: 'error' });
               });
@@ -331,9 +381,13 @@ export default function DeveloperPage() {
         ? await updateApiKeyMutation.mutateAsync({ keyId: editingApiKeyId, data: payload })
         : await createApiKeyMutation.mutateAsync(payload);
 
+      if (!editingApiKeyId) {
+        openSecretModal('API key created', response.key);
+      }
+
       addToast({
         title: editingApiKeyId ? 'API key updated' : 'API key created',
-        message: response.name,
+        message: editingApiKeyId ? response.name : 'A new client secret is ready.',
         variant: 'success',
       });
       setApiKeyForm({ name: '', scopes: 'read:inventory,read:sales', expires_at: '' });
@@ -640,6 +694,26 @@ export default function DeveloperPage() {
           )}
         </>
       )}
+
+      <Dialog open={Boolean(secretModal)} onOpenChange={(open) => { if (!open) closeSecretModal(); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogTitle>{secretModal?.title ?? 'API key secret'}</DialogTitle>
+          <DialogDescription>
+            Save this secret now. It will not be shown again.
+          </DialogDescription>
+          {secretModal ? (
+            <div className="mt-4 space-y-4">
+              <Input label="Client secret" value={secretModal.secret} readOnly className="font-mono text-sm" />
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => void copySecret()}>Copy secret</Button>
+                <Button variant="secondary" onClick={closeSecretModal}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </PageFrame>
   );
 }

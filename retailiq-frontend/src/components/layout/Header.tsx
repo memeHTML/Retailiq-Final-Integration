@@ -30,6 +30,8 @@ const routeTitles: Record<string, string> = {
   [routes.decisions]: 'Decisions',
   [routes.kyc]: 'KYC',
   [routes.developer]: 'Developer',
+  [routes.team]: 'Team',
+  [routes.ops]: 'Maintenance',
   [routes.operations]: 'Operations',
   [routes.inventoryReceipts]: 'Receipts',
   [routes.inventoryBarcodes]: 'Barcodes',
@@ -72,6 +74,10 @@ export function Header({ onOpenPalette }: HeaderProps) {
 
   const title = useMemo(() => {
     const pathname = location.pathname;
+    if (pathname.startsWith(routes.developer)) return 'Developer';
+    if (pathname.startsWith(routes.kyc)) return 'KYC';
+    if (pathname.startsWith(routes.team)) return 'Team';
+    if (pathname.startsWith(routes.ops)) return 'Maintenance';
     if (pathname.startsWith(routes.storeCategories)) return 'Store Categories';
     if (pathname.startsWith(routes.storeTaxConfig)) return 'Tax Config';
     if (pathname.startsWith(routes.storeProfile)) return 'Store Profile';

@@ -1,7 +1,6 @@
 /* @vitest-environment jsdom */
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Header } from './Header';
 
@@ -34,12 +33,20 @@ const mocks = vi.hoisted(() => {
 const navigateMock = mocks.navigateMock;
 const toggleMobileNavMock = mocks.toggleMobileNavMock;
 const clearAuthMock = mocks.clearAuthMock;
+let currentPathname = '/dashboard';
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
     useNavigate: () => navigateMock,
+    useLocation: () => ({
+      pathname: currentPathname,
+      search: '',
+      hash: '',
+      state: null,
+      key: 'test-location',
+    }),
   };
 });
 
@@ -57,17 +64,15 @@ vi.mock('@/hooks/store', () => ({
 
 describe('Header', () => {
   beforeEach(() => {
+    cleanup();
     vi.clearAllMocks();
+    currentPathname = '/dashboard';
   });
 
   it('toggles mobile navigation and exposes logout controls', async () => {
     const user = userEvent.setup();
 
-    render(
-      <MemoryRouter initialEntries={['/dashboard']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Header onOpenPalette={vi.fn()} />
-      </MemoryRouter>,
-    );
+    render(<Header onOpenPalette={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeTruthy();
     expect(screen.getByText('RetailIQ')).toBeTruthy();
@@ -81,5 +86,18 @@ describe('Header', () => {
 
     expect(clearAuthMock).toHaveBeenCalled();
     expect(navigateMock).toHaveBeenCalledWith('/login', { replace: true });
+  });
+
+  it.each([
+    ['/operations/developer', 'Developer'],
+    ['/operations/kyc', 'KYC'],
+    ['/operations/team', 'Team'],
+    ['/operations/maintenance', 'Maintenance'],
+  ])('uses route-specific titles for %s', (pathname, title) => {
+    currentPathname = pathname;
+    render(<Header onOpenPalette={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: title })).toBeTruthy();
+    expect(screen.getAllByLabelText('Breadcrumb')[0].textContent).toContain(title);
   });
 });
