@@ -20,6 +20,9 @@ export const StoreCategoriesPage = lazy(() => import('@/pages/StoreCategories'))
 export const StoreTaxConfigPage = lazy(() => import('@/pages/StoreTaxConfig'));
 export const ReceiptsTemplatePage = lazy(() => import('@/pages/ReceiptsTemplate'));
 export const ReceiptsQueuePage = lazy(() => import('@/pages/ReceiptsQueue'));
+export const InventoryReceiptsPage = lazy(() => import('@/pages/InventoryReceipts'));
+export const BarcodesPage = lazy(() => import('@/pages/Barcodes'));
+export const InventoryVisionPage = lazy(() => import('@/pages/InventoryVision'));
 export const VisionOcrUploadPage = lazy(() => import('@/pages/VisionOcrUpload'));
 export const VisionOcrReviewPage = lazy(() => import('@/pages/VisionOcrReview'));
 export const KycPage = lazy(() => import('@/pages/Kyc'));

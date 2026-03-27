@@ -31,6 +31,10 @@ const routeTitles: Record<string, string> = {
   [routes.kyc]: 'KYC',
   [routes.developer]: 'Developer',
   [routes.operations]: 'Operations',
+  [routes.inventoryReceipts]: 'Receipts',
+  [routes.inventoryBarcodes]: 'Barcodes',
+  [routes.inventoryVision]: 'Vision OCR',
+  [routes.inventoryVisionReview]: 'Vision OCR',
   [routes.suppliers]: 'Suppliers',
   [routes.purchaseOrders]: 'Purchase Orders',
   [routes.marketIntelligence]: 'Market Intelligence',
@@ -70,6 +74,9 @@ export function Header({ onOpenPalette }: HeaderProps) {
     if (pathname.startsWith(routes.storeTaxConfig)) return 'Tax Config';
     if (pathname.startsWith(routes.storeProfile)) return 'Store Profile';
     if (pathname.startsWith(routes.inventory)) return 'Inventory';
+    if (pathname.startsWith(routes.inventoryReceipts)) return 'Receipts';
+    if (pathname.startsWith(routes.inventoryBarcodes)) return 'Barcodes';
+    if (pathname.startsWith(routes.inventoryVision)) return 'Vision OCR';
     if (pathname.startsWith(routes.suppliers)) return 'Suppliers';
     if (pathname.startsWith(routes.purchaseOrders)) return 'Purchase Orders';
     if (pathname.startsWith(routes.transactions)) return 'Transactions';

@@ -24,4 +24,3 @@ export const useUpdateReceiptTemplateMutation = () => {
 };
 
 export const usePrintReceiptMutation = () => useMutation({ mutationFn: (payload: PrintReceiptRequest) => receiptsApi.printReceipt(payload) });
-export const useLookupBarcodeQuery = (value: string | null) => useQuery({ queryKey: ['receipts', 'barcode', value], queryFn: () => receiptsApi.lookupBarcode({ value: value ?? '' }), enabled: Boolean(value), staleTime: 60_000 });

@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { act, render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -45,11 +45,12 @@ describe('CommandPalette', () => {
     expect(screen.getByRole('dialog', { name: /quick search/i })).toBeTruthy();
     const input = screen.getByPlaceholderText(/search pages and actions/i);
     await user.type(input, 'intelligence');
-    await act(async () => {
-      await user.keyboard('{ArrowDown}{Enter}');
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/market-intelligence');
     });
 
-    expect(navigateMock).toHaveBeenCalledWith('/market-intelligence');
     expect(JSON.parse(window.localStorage.getItem('retailiq-command-palette-recents') ?? '[]')[0].to).toBe('/market-intelligence');
   });
 
@@ -63,9 +64,9 @@ describe('CommandPalette', () => {
       </MemoryRouter>,
     );
 
-    await act(async () => {
-      await user.keyboard('{Escape}');
+    await user.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
     });
-    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

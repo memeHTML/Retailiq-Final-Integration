@@ -8,13 +8,15 @@ interface FileUploadDropzoneProps {
   label: string;
   onFileSelected: (file: File) => void;
   disabled?: boolean;
+  helperText?: string;
+  error?: string | null;
 }
 
-export function FileUploadDropzone({ accept, label, onFileSelected, disabled }: FileUploadDropzoneProps) {
+export function FileUploadDropzone({ accept, label, onFileSelected, disabled, helperText, error }: FileUploadDropzoneProps) {
   return (
     <label className="card" style={{ display: 'grid', gap: '0.75rem', padding: '1.25rem' }}>
       <strong>{label}</strong>
-      <span className="muted">Accepts {accept}</span>
+      <span className="muted">{helperText ?? `Accepts ${accept}`}</span>
       <input
         type="file"
         accept={accept}
@@ -26,6 +28,7 @@ export function FileUploadDropzone({ accept, label, onFileSelected, disabled }: 
           }
         }}
       />
+      {error ? <span className="text-sm text-red-600">{error}</span> : null}
     </label>
   );
 }

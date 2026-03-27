@@ -4,6 +4,7 @@
  * Last item from Section 11 risks addressed here: Mixed response envelopes
  */
 import { QueryClient } from '@tanstack/react-query';
+import { authStore, getAuthIdentityKey } from '@/stores/authStore';
 
 const shouldRetry = (failureCount: number, error: unknown) => {
   if (typeof error === 'object' && error !== null && 'status' in error) {
@@ -29,3 +30,31 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+let authTransitionResetInstalled = false;
+
+export const installAuthTransitionReset = () => {
+  if (authTransitionResetInstalled) {
+    return;
+  }
+
+  authTransitionResetInstalled = true;
+
+  let previousIdentity = getAuthIdentityKey(authStore.getState().user);
+
+  authStore.subscribe((state, previousState) => {
+    const nextIdentity = getAuthIdentityKey(state.user);
+    const prevIdentity = getAuthIdentityKey(previousState.user);
+
+    if (prevIdentity === nextIdentity) {
+      previousIdentity = nextIdentity;
+      return;
+    }
+
+    if (previousIdentity !== null) {
+      queryClient.clear();
+    }
+
+    previousIdentity = nextIdentity;
+  });
+};

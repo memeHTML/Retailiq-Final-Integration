@@ -14,6 +14,10 @@ describe('route registry', () => {
     expect(routes.marketIntelligence).toBe('/market-intelligence');
     expect(routes.pos).toBe('/pos');
     expect(routes.stockAudit).toBe('/inventory/stock-audit');
+    expect(routes.inventoryReceipts).toBe('/inventory/receipts');
+    expect(routes.inventoryBarcodes).toBe('/inventory/barcodes');
+    expect(routes.inventoryVision).toBe('/inventory/vision');
+    expect(routes.inventoryVisionReview).toBe('/inventory/vision/:jobId');
     expect(routes.receiptsQueue).toBe('/receipts/queue');
     expect(routes.visionOcr).toBe('/vision/ocr');
     expect(routes.storeProfile).toBe('/store/profile');
@@ -27,6 +31,10 @@ describe('route registry', () => {
     expect(routes.mfaVerify).toBe('/mfa-verify');
     expect(routes.gst).toBe('/gst');
     expect(routes.einvoice).toBe('/e-invoicing');
+    expect(routes.receiptsTemplate).toBe('/receipts/template');
+    expect(routes.inventoryReceipts).toBe('/inventory/receipts');
+    expect(routes.inventoryBarcodes).toBe('/inventory/barcodes');
+    expect(routes.inventoryVision).toBe('/inventory/vision');
   });
 
   it('does not hardcode canonical route strings in page navigation files', () => {

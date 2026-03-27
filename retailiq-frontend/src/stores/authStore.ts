@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { StateCreator } from 'zustand';
 import type { CurrentUser, UserRole } from '@/types/models';
+import { captureHistoryStore } from '@/stores/captureHistoryStore';
 import { clearStoredRefreshToken, setStoredRefreshToken } from '@/utils/tokenStorage';
 
 const memoryStorage = {
@@ -26,6 +27,9 @@ export interface AuthState {
   setUser: (user: CurrentUser) => void;
   clearAuth: () => void;
 }
+
+export const getAuthIdentityKey = (user: CurrentUser | null) =>
+  user ? `${user.user_id}:${user.store_id ?? 'null'}` : null;
 
 const authStateCreator: StateCreator<AuthState> = (set) => ({
   accessToken: null,
@@ -54,6 +58,7 @@ const authStateCreator: StateCreator<AuthState> = (set) => ({
   }),
   clearAuth: () => {
     clearStoredRefreshToken();
+    captureHistoryStore.getState().clearAll();
     set({
       accessToken: null,
       refreshToken: null,

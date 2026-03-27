@@ -10,8 +10,11 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from '@/router';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { queryClient } from '@/stores/queryClient';
+import { installAuthTransitionReset } from '@/stores/queryClient';
 import { ToastProvider } from '@/components/ui/ToastProvider';
 import '@/styles/globals.css';
+
+installAuthTransitionReset();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>

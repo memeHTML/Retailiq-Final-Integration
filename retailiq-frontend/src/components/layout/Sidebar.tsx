@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   BarChart3,
+  Barcode,
   Boxes,
   BrainCircuit,
   Building2,
@@ -19,6 +20,7 @@ import {
   RotateCcw,
   ShieldCheck,
   ShoppingCart,
+  ScanLine,
   Sparkles,
   Store,
   Users,
@@ -57,8 +59,9 @@ const navGroups: NavGroup[] = [
     items: [
       { label: 'Products', to: routes.inventory, icon: Boxes },
       { label: 'Stock Audit', to: routes.stockAudit, icon: ShieldCheck },
-      { label: 'Receipts & Barcodes', to: routes.receiptsQueue, icon: ReceiptText },
-      { label: 'Vision OCR', to: routes.visionOcr, icon: Boxes },
+      { label: 'Receipts', to: routes.inventoryReceipts, icon: ReceiptText },
+      { label: 'Barcodes', to: routes.inventoryBarcodes, icon: Barcode },
+      { label: 'Vision OCR', to: routes.inventoryVision, icon: ScanLine },
       { label: 'Pricing', to: routes.pricing, icon: CircleDollarSign, ownerOnly: true },
       { label: 'Forecasting', to: routes.forecasting, icon: BarChart3, ownerOnly: true },
     ],

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { normalizeApiError } from '@/utils/errors';
 import { useNlpQueryMutation, useAiAssistantMutation, useAiRecommendMutation } from '@/hooks/nlp';
-import { useAiV2QueryMutation, useAiV2RecommendMutation } from '@/hooks/aiTools';
+import { useAiReceiptDigitizeMutation, useAiShelfScanMutation, useAiV2QueryMutation, useAiV2RecommendMutation } from '@/hooks/aiTools';
 import type { NlpResponse } from '@/types/models';
 import type { AiRecommendation } from '@/types/models';
 
@@ -22,10 +22,15 @@ export default function AiAssistantPage() {
   const [recommendations, setRecommendations] = useState<AiRecommendation[]>([]);
   const [v2Response, setV2Response] = useState<string>('');
   const [v2Recommendations, setV2Recommendations] = useState<AiRecommendation[]>([]);
+  const [shelfScanImageUrl, setShelfScanImageUrl] = useState('');
+  const [receiptImageUrl, setReceiptImageUrl] = useState('');
+  const [visionMessage, setVisionMessage] = useState('');
 
   const nlpMutation = useNlpQueryMutation();
   const aiMutation = useAiAssistantMutation();
   const recMutation = useAiRecommendMutation();
+  const shelfScanMutation = useAiShelfScanMutation();
+  const receiptDigitizeMutation = useAiReceiptDigitizeMutation();
   const v2QueryMutation = useAiV2QueryMutation();
   const v2RecMutation = useAiV2RecommendMutation();
 
@@ -86,6 +91,42 @@ export default function AiAssistantPage() {
   const handleGetV2Recommendations = () => {
     v2RecMutation.mutate({}, {
       onSuccess: (data) => setV2Recommendations(data.recommendations ?? []),
+    });
+  };
+
+  const handleShelfScan = () => {
+    const imageUrl = shelfScanImageUrl.trim();
+    if (!imageUrl) {
+      setVisionMessage('Shelf-scan image URL is required.');
+      return;
+    }
+
+    setVisionMessage('');
+    shelfScanMutation.mutate({ image_url: imageUrl }, {
+      onSuccess: () => {
+        setVisionMessage('Shelf-scan request submitted to the backend.');
+      },
+      onError: (error) => {
+        setVisionMessage(normalizeApiError(error).message);
+      },
+    });
+  };
+
+  const handleReceiptDigitize = () => {
+    const imageUrl = receiptImageUrl.trim();
+    if (!imageUrl) {
+      setVisionMessage('Receipt image URL is required.');
+      return;
+    }
+
+    setVisionMessage('');
+    receiptDigitizeMutation.mutate({ image_url: imageUrl }, {
+      onSuccess: () => {
+        setVisionMessage('Receipt digitization request submitted to the backend.');
+      },
+      onError: (error) => {
+        setVisionMessage(normalizeApiError(error).message);
+      },
     });
   };
 
@@ -207,6 +248,32 @@ export default function AiAssistantPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>AI Vision Tools</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="muted">These v2 tools stay separate from the v1 OCR workflow and use image URLs as the backend expects.</p>
+              <div className="mt-4 grid gap-4">
+                <div className="grid gap-2">
+                  <div className="text-sm font-medium">Shelf scan image URL</div>
+                  <Input value={shelfScanImageUrl} onChange={(e) => setShelfScanImageUrl(e.target.value)} placeholder="https://..." />
+                  <Button variant="secondary" onClick={handleShelfScan} disabled={shelfScanMutation.isPending}>
+                    {shelfScanMutation.isPending ? '...' : 'Run shelf scan'}
+                  </Button>
+                </div>
+                <div className="grid gap-2">
+                  <div className="text-sm font-medium">Receipt image URL</div>
+                  <Input value={receiptImageUrl} onChange={(e) => setReceiptImageUrl(e.target.value)} placeholder="https://..." />
+                  <Button variant="secondary" onClick={handleReceiptDigitize} disabled={receiptDigitizeMutation.isPending}>
+                    {receiptDigitizeMutation.isPending ? '...' : 'Digitize receipt'}
+                  </Button>
+                </div>
+              </div>
+              {visionMessage ? <div className="mt-3 text-sm text-gray-600">{visionMessage}</div> : null}
             </CardContent>
           </Card>
         </div>
