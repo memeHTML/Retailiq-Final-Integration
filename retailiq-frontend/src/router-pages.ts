@@ -12,7 +12,6 @@ export const AlertsPage = lazy(() => import('@/features/dashboard/AlertsPage'));
 export const CalendarPage = lazy(() => import('@/features/dashboard/CalendarPage'));
 export const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 export const PosPage = lazy(() => import('@/pages/Pos'));
-export const OrdersPage = lazy(() => import('@/pages/Orders'));
 export const TransactionsPage = lazy(() => import('@/pages/Transactions'));
 export const TransactionDetailPage = lazy(() => import('@/pages/TransactionDetail'));
 export const InventoryPage = lazy(() => import('@/features/inventory/ProductsPage'));

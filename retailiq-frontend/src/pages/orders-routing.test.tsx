@@ -7,7 +7,6 @@ import LoginPage from '@/pages/Login';
 import PosPage from '@/pages/Pos';
 import TransactionsPage from '@/pages/Transactions';
 import TransactionDetailPage from '@/pages/TransactionDetail';
-import OrdersPage from '@/pages/Orders';
 import { uiStore } from '@/stores/uiStore';
 
 const mocks = vi.hoisted(() => ({
@@ -177,18 +176,5 @@ describe('orders routing and smoke coverage', () => {
     await waitFor(() => {
       expect(screen.getByText(/point of sale/i)).toBeTruthy();
     });
-  });
-
-  it('renders the orders hub page', () => {
-    render(
-      <MemoryRouter initialEntries={['/orders']}>
-        <OrdersPage />
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByRole('heading', { name: /orders hub/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /sales/i })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /open pos/i })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /view transactions/i })).toBeTruthy();
   });
 });

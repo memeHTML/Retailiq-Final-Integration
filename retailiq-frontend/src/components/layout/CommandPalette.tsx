@@ -18,7 +18,6 @@ const items: CommandItem[] = [
   { label: 'Transactions', description: 'Sales and returns', to: routes.transactions },
   { label: 'Inventory', description: 'Products and stock', to: routes.inventory },
   { label: 'Inventory Sync', description: 'Offline snapshot and batch sync', to: routes.inventorySync },
-  { label: 'Orders Hub', description: 'Sales, purchase orders, and marketplace shortcuts', to: routes.orders },
   { label: 'Omnichannel', description: 'Marketplace and WhatsApp hub', to: routes.omnichannel },
   { label: 'Customers', description: 'Customer records', to: routes.customers },
   { label: 'Analytics', description: 'Reports and insights', to: routes.analytics },

@@ -89,7 +89,6 @@ describe('Prompt 00 step 9 shell verification', () => {
       'Pricing',
       'Forecasting',
       'POS / New Sale',
-      'Orders Hub',
       'Transactions',
       'Returns',
       'Purchase Orders',
