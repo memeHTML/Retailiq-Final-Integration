@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BarChart3, Boxes, BrainCircuit, Building2, ChevronLeft, ChevronRight, CircleDollarSign, CreditCard, FileText, FolderKanban, Globe2, LayoutDashboard, Megaphone, PackageSearch, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Sparkles, Store, Users, Webhook, Zap } from 'lucide-react';
+import { BarChart3, Boxes, BrainCircuit, Building2, ChevronLeft, ChevronRight, CircleDollarSign, CreditCard, FileText, FolderKanban, Globe2, LayoutDashboard, Laptop2, LockKeyhole, Megaphone, ReceiptText, RefreshCcw, ScanLine, Settings2, ShieldCheck, ShoppingCart, Sparkles, Store, Users, Webhook, X, Zap } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { uiStore } from '@/stores/uiStore';
 import { authStore } from '@/stores/authStore';
@@ -23,9 +23,9 @@ const navGroups: NavGroup[] = [
     title: 'Dashboard',
     items: [
       { label: 'Overview', to: routes.dashboard, icon: LayoutDashboard },
-      { label: 'Smart Alerts', to: '/alerts', icon: Sparkles },
-      { label: 'Reports', to: '/reports', icon: FileText },
-      { label: 'Financial Calendar', to: '/financial-calendar', icon: CalendarIcon },
+      { label: 'Smart Alerts', to: routes.dashboardAlerts, icon: Sparkles },
+      { label: 'Reports', to: routes.dashboardReports, icon: FileText },
+      { label: 'Financial Calendar', to: routes.dashboardCalendar, icon: RefreshCcw },
     ],
   },
   {
@@ -33,8 +33,9 @@ const navGroups: NavGroup[] = [
     items: [
       { label: 'Products', to: routes.inventory, icon: Boxes },
       { label: 'Stock Audit', to: '/inventory/stock-audit', icon: ShieldCheck },
+      { label: 'Inventory Sync', to: routes.inventorySync, icon: RefreshCcw },
       { label: 'Receipts & Barcodes', to: '/receipts/queue', icon: ReceiptText },
-      { label: 'Vision OCR', to: routes.vision, icon: ScanIcon },
+      { label: 'Vision OCR', to: routes.vision, icon: ScanLine },
       { label: 'Pricing', to: routes.pricing, icon: CircleDollarSign, ownerOnly: true },
       { label: 'Forecasting', to: routes.forecasting, icon: BarChart3, ownerOnly: true },
     ],
@@ -42,12 +43,14 @@ const navGroups: NavGroup[] = [
   {
     title: 'Orders',
     items: [
-      { label: 'POS / New Sale', to: '/pos', icon: ShoppingCart },
+      { label: 'Orders Hub', to: routes.orders, icon: LayoutDashboard },
+      { label: 'POS / New Sale', to: routes.pos, icon: ShoppingCart },
       { label: 'Transactions', to: routes.transactions, icon: FileText },
-      { label: 'Returns', to: '/returns', icon: RotateIcon },
+      { label: 'Returns', to: routes.transactions, icon: RefreshCcw },
       { label: 'Purchase Orders', to: '/purchase-orders', icon: FolderKanban },
       { label: 'Suppliers', to: routes.suppliers, icon: Store },
       { label: 'Marketplace', to: routes.marketplace, icon: Building2 },
+      { label: 'Omnichannel', to: routes.omnichannel, icon: Megaphone },
     ],
   },
   {
@@ -63,18 +66,31 @@ const navGroups: NavGroup[] = [
     title: 'Analytics',
     items: [
       { label: 'Business Analytics', to: routes.analytics, icon: BarChart3, ownerOnly: true },
-      { label: 'Market Intelligence', to: '/market-intelligence', icon: Megaphone, ownerOnly: true },
+      { label: 'Market Intelligence', to: routes.analyticsMarket, icon: Megaphone, ownerOnly: true },
       { label: 'Decisions', to: routes.decisions, icon: BrainCircuit, ownerOnly: true },
-      { label: 'Staff Performance', to: routes.staff, icon: Users },
-      { label: 'Offline Data', to: routes.offline, icon: Globe2 },
+      { label: 'Staff Performance', to: routes.analyticsStaff, icon: Users },
+      { label: 'Offline Data', to: routes.analyticsOffline, icon: Globe2 },
     ],
   },
   {
     title: 'Financials',
     items: [
       { label: 'Finance Dashboard', to: routes.finance, icon: CircleDollarSign },
+      { label: 'Accounts', to: routes.financeAccounts, icon: Building2, ownerOnly: true },
+      { label: 'Credit Score', to: routes.financeCreditScore, icon: ShieldCheck, ownerOnly: true },
+      { label: 'Finance KYC', to: routes.financeKyc, icon: ShieldCheck, ownerOnly: true },
+      { label: 'Ledger', to: routes.financeLedger, icon: FileText, ownerOnly: true },
+      { label: 'Treasury', to: routes.financeTreasury, icon: Store, ownerOnly: true },
+      { label: 'Loans', to: routes.financeLoans, icon: FolderKanban, ownerOnly: true },
       { label: 'GST / Tax', to: routes.gst, icon: FileText, ownerOnly: true },
       { label: 'E-Invoicing', to: routes.einvoice, icon: ReceiptText },
+    ],
+  },
+  {
+    title: 'AI Assistant',
+    items: [
+      { label: 'Chat', to: routes.ai, icon: Laptop2 },
+      { label: 'AI Tools', to: routes.aiTools, icon: BrainCircuit },
     ],
   },
   {
@@ -88,25 +104,16 @@ const navGroups: NavGroup[] = [
   {
     title: 'Settings',
     items: [
-      { label: 'Store Profile', to: routes.settings, icon: Store, ownerOnly: true },
-      { label: 'i18n', to: routes.i18n, icon: Globe2 },
+      { label: 'Store Profile', to: routes.settingsProfile, icon: Store, ownerOnly: true },
+      { label: 'Categories', to: routes.settingsCategories, icon: Boxes, ownerOnly: true },
+      { label: 'Tax Config', to: routes.settingsTax, icon: FileText, ownerOnly: true },
+      { label: 'Security / MFA', to: routes.settingsSecurity, icon: LockKeyhole },
+      { label: 'Language / i18n', to: routes.i18n, icon: Globe2 },
     ],
   },
 ];
 
 const calendarDays = [1, 2, 3, 4, 5, 6];
-
-function CalendarIcon({ className }: { className?: string }) {
-  return <span className={className}>31</span>;
-}
-
-function ScanIcon({ className }: { className?: string }) {
-  return <span className={className}>OCR</span>;
-}
-
-function RotateIcon({ className }: { className?: string }) {
-  return <span className={className}>↺</span>;
-}
 
 export function sidebarNavGroups(role: 'owner' | 'staff' | null) {
   return navGroups.map((group) => ({
@@ -115,14 +122,19 @@ export function sidebarNavGroups(role: 'owner' | 'staff' | null) {
   }));
 }
 
-export function Sidebar() {
-  const collapsed = uiStore((state) => state.sidebarCollapsed);
-  const toggleSidebar = uiStore((state) => state.toggleSidebar);
+type SidebarPanelProps = {
+  collapsed: boolean;
+  drawerMode?: boolean;
+  onToggleCollapse?: () => void;
+  onNavigate?: () => void;
+};
+
+export function SidebarPanel({ collapsed, drawerMode = false, onToggleCollapse, onNavigate }: SidebarPanelProps) {
   const role = authStore((state) => state.role);
   const groups = sidebarNavGroups(role);
 
   return (
-    <aside className={cn('sidebar', collapsed && 'sidebar--collapsed')}>
+    <aside className={cn('sidebar', collapsed && 'sidebar--collapsed', drawerMode && 'sidebar--drawer')}>
       <div className="sidebar__brand">
         <div className="sidebar__logo">R</div>
         {!collapsed ? (
@@ -131,8 +143,13 @@ export function Sidebar() {
             <div className="sidebar__tag">Retail operations hub</div>
           </div>
         ) : null}
-        <button className="sidebar__collapse" type="button" onClick={toggleSidebar} aria-label="Toggle sidebar">
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        <button
+          className="sidebar__collapse"
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={drawerMode ? 'Close navigation' : 'Toggle sidebar'}
+        >
+          {drawerMode ? <X size={18} /> : collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
@@ -145,9 +162,10 @@ export function Sidebar() {
                 const Icon = item.icon;
                 return (
                   <NavLink
-                    key={item.to}
+                    key={`${item.to}-${item.label}`}
                     to={item.to}
                     className={({ isActive }) => cn('sidebar__item', isActive && 'sidebar__item--active')}
+                    onClick={onNavigate}
                   >
                     <Icon className="sidebar__item-icon" />
                     {!collapsed ? <span>{item.label}</span> : null}
@@ -162,6 +180,7 @@ export function Sidebar() {
       <div className="sidebar__footer">
         <div className="sidebar__footer-card">
           <div className="sidebar__footer-title">Store health</div>
+          {!collapsed ? <div className="sidebar__footer-subtitle">Quick pulse of the current branch.</div> : null}
           <div className="sidebar__footer-metrics">
             {calendarDays.map((day) => (
               <span key={day} />
@@ -171,4 +190,11 @@ export function Sidebar() {
       </div>
     </aside>
   );
+}
+
+export function Sidebar() {
+  const collapsed = uiStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = uiStore((state) => state.toggleSidebar);
+
+  return <SidebarPanel collapsed={collapsed} onToggleCollapse={toggleSidebar} />;
 }

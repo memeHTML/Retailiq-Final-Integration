@@ -12,9 +12,12 @@ import type {
   UpdateStoreTaxConfigRequest,
 } from '@/types/api';
 
-export const useStoreProfileQuery = () => useQuery({ queryKey: ['store', 'profile'], queryFn: storeApi.getStoreProfile, staleTime: 60_000 });
-export const useCategoriesQuery = () => useQuery({ queryKey: ['store', 'categories'], queryFn: storeApi.listCategories, staleTime: 60_000 });
-export const useStoreTaxConfigQuery = () => useQuery({ queryKey: ['store', 'tax-config'], queryFn: storeApi.getStoreTaxConfig, staleTime: 60_000 });
+export const useStoreProfileQuery = () =>
+  useQuery({ queryKey: ['store', 'profile'], queryFn: storeApi.getStoreProfile, staleTime: 10 * 60_000 });
+export const useCategoriesQuery = () =>
+  useQuery({ queryKey: ['store', 'categories'], queryFn: storeApi.listCategories, staleTime: 5 * 60_000 });
+export const useStoreTaxConfigQuery = () =>
+  useQuery({ queryKey: ['store', 'tax-config'], queryFn: storeApi.getStoreTaxConfig, staleTime: 10 * 60_000 });
 
 export const useUpdateStoreProfileMutation = () => {
   const queryClient = useQueryClient();

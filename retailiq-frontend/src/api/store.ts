@@ -26,6 +26,7 @@ export const listCategories = async (): Promise<ListCategoriesResponse> => {
   const categories = await request<ListCategoriesResponse['categories']>({ url: '/api/v1/store/categories', method: 'GET' });
   return { categories: Array.isArray(categories) ? categories : [] };
 };
+export const getCategories = listCategories;
 export const createCategory = (payload: CreateCategoryRequest) => request<CreateCategoryResponse>({ url: '/api/v1/store/categories', method: 'POST', data: payload });
 export const updateCategory = (categoryId: number | string, payload: UpdateCategoryRequest) => request<UpdateCategoryResponse>({ url: `/api/v1/store/categories/${categoryId}`, method: 'PUT', data: payload });
 export const deleteCategory = (categoryId: number | string) => request<DeleteCategoryResponse>({ url: `/api/v1/store/categories/${categoryId}`, method: 'DELETE' });
@@ -34,3 +35,4 @@ export const updateStoreTaxConfig = async (payload: UpdateStoreTaxConfigRequest)
   await requestEnvelope({ url: '/api/v1/store/tax-config', method: 'PUT', data: payload });
   return getStoreTaxConfig();
 };
+export const updateTaxConfig = updateStoreTaxConfig;
