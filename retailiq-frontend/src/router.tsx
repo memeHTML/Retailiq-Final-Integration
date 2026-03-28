@@ -4,36 +4,23 @@
  * Last item from Section 11 risks addressed here: Mixed response envelopes
  */
 import { Suspense, type ReactNode } from 'react';
-import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router-dom';
-import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
-import { PageErrorFallback } from '@/components/shared/PageErrorFallback';
-import { routes } from '@/routes/routes';
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { AuthGuard, PublicOnlyGuard, RoleGuard } from '@/utils/guards';
 import { AppShell } from '@/components/layout/AppShell';
 import {
   AiAssistantPage,
-  AiToolsPage,
   AnalyticsPage,
   ApiValidationPage,
   ChainPage,
   CreditPage,
   CustomerDetailPage,
-  CustomerAnalyticsPage,
   CustomersPage,
-  AlertsPage,
   DashboardPage,
-  CalendarPage,
   DecisionsPage,
   DeveloperPage,
   EInvoicingPage,
   EventsPage,
   FinancePage,
-  FinanceAccountsPage,
-  FinanceCreditScorePage,
-  FinanceKycPage,
-  FinanceLedgerPage,
-  FinanceLoansPage,
-  FinanceTreasuryPage,
   ForbiddenPage,
   ForecastingPage,
   ForgotPasswordPage,
@@ -42,9 +29,6 @@ import {
   InventoryDetailPage,
   InventoryFormPage,
   InventoryPage,
-  InventorySyncPage,
-  OmnichannelPage,
-  OrdersPage,
   KycPage,
   LoginPage,
   LoyaltyPage,
@@ -54,13 +38,7 @@ import {
   MfaVerifyPage,
   NotFoundPage,
   OfflinePage,
-  SecurityPage,
   PosPage,
-  AnalyticsForecastingPage,
-  InventoryPricingPage,
-  AnalyticsMarketPage,
-  AnalyticsStaffPage,
-  AnalyticsOfflinePage,
   PricingPage,
   PurchaseOrderCreatePage,
   PurchaseOrderDetailPage,
@@ -70,7 +48,6 @@ import {
   ReceiptsTemplatePage,
   RegisterPage,
   ResetPasswordPage,
-  ReportsPage,
   ServerErrorPage,
   StaffPerformanceDetailPage,
   StaffPerformancePage,
@@ -89,29 +66,10 @@ import {
 } from './router-pages';
 
 const suspense = (element: ReactNode) => (
-  <ErrorBoundary fallback={<PageErrorFallback />}>
-    <Suspense fallback={<div className="app-content">Loading…</div>}>{element}</Suspense>
-  </ErrorBoundary>
+  <Suspense fallback={<div className="app-content">Loading…</div>}>{element}</Suspense>
 );
 
-function LegacyTransactionRedirect() {
-  const params = useParams();
-  return <Navigate to={params.id ? `/orders/transactions/${params.id}` : '/orders/transactions'} replace />;
-}
-
-function LegacyAiRedirect() {
-  return <Navigate to={routes.ai} replace />;
-}
-
-function LegacyAiToolsRedirect() {
-  return <Navigate to={routes.aiTools} replace />;
-}
-
-function LegacyDecisionsRedirect() {
-  return <Navigate to={routes.decisions} replace />;
-}
-
-export const appRoutes = [
+export const router = createBrowserRouter([
   {
     element: <Outlet />,
     children: [
@@ -137,35 +95,18 @@ export const appRoutes = [
             element: <AppShell />,
             children: [
               { path: '/', element: <Navigate to="/dashboard" replace /> },
-              { path: '/orders', element: suspense(<OrdersPage />) },
-              { path: '/pos', element: <Navigate to="/orders/pos" replace /> },
-              { path: '/transactions', element: <Navigate to="/orders/transactions" replace /> },
-              { path: '/transactions/:id', element: suspense(<LegacyTransactionRedirect />) },
-              { path: '/orders/pos', element: suspense(<PosPage />) },
-              { path: '/orders/transactions', element: suspense(<TransactionsPage />) },
-              { path: '/orders/transactions/:uuid', element: suspense(<TransactionDetailPage />) },
               { path: '/dashboard', element: suspense(<DashboardPage />) },
-              { path: '/dashboard/alerts', element: suspense(<AlertsPage />) },
-              { path: '/dashboard/calendar', element: suspense(<CalendarPage />) },
-              { path: '/dashboard/reports', element: suspense(<ReportsPage />) },
-              { path: '/alerts', element: <Navigate to="/dashboard/alerts" replace /> },
-              { path: '/financial-calendar', element: <Navigate to="/dashboard/calendar" replace /> },
-              { path: '/reports', element: <Navigate to="/dashboard/reports" replace /> },
+              { path: '/pos', element: suspense(<PosPage />) },
+              { path: '/transactions', element: suspense(<TransactionsPage />) },
+              { path: '/transactions/:id', element: suspense(<TransactionDetailPage />) },
               { path: '/inventory', element: suspense(<InventoryPage />) },
-              { path: '/inventory/new', element: suspense(<RoleGuard role="owner"><InventoryFormPage /></RoleGuard>) },
-              { path: '/inventory/sync', element: suspense(<InventorySyncPage />) },
-              { path: routes.omnichannel, element: suspense(<OmnichannelPage />) },
-              { path: '/inventory/stock-audit', element: suspense(<RoleGuard role="owner"><StockAuditPage /></RoleGuard>) },
-              { path: '/inventory/:productId/edit', element: suspense(<RoleGuard role="owner"><InventoryFormPage /></RoleGuard>) },
+              { path: '/inventory/new', element: suspense(<InventoryFormPage />) },
               { path: '/inventory/:productId', element: suspense(<InventoryDetailPage />) },
-              { path: routes.settingsProfile, element: suspense(<StoreProfilePage />) },
-              { path: routes.settingsCategories, element: suspense(<RoleGuard role="owner"><StoreCategoriesPage /></RoleGuard>) },
-              { path: routes.settingsTax, element: suspense(<RoleGuard role="owner"><StoreTaxConfigPage /></RoleGuard>) },
-              { path: routes.settingsSecurity, element: suspense(<SecurityPage />) },
-              { path: routes.legacyStoreProfile, element: <Navigate to={routes.settingsProfile} replace /> },
-              { path: routes.legacyStoreCategories, element: <Navigate to={routes.settingsCategories} replace /> },
-              { path: routes.legacyStoreTaxConfig, element: <Navigate to={routes.settingsTax} replace /> },
-              { path: routes.legacySecurity, element: <Navigate to={routes.settingsSecurity} replace /> },
+              { path: '/inventory/:productId/edit', element: suspense(<InventoryFormPage />) },
+              { path: '/inventory/stock-audit', element: suspense(<StockAuditPage />) },
+              { path: '/store/profile', element: suspense(<StoreProfilePage />) },
+              { path: '/store/categories', element: suspense(<StoreCategoriesPage />) },
+              { path: '/store/tax-config', element: suspense(<StoreTaxConfigPage />) },
               { path: '/suppliers', element: suspense(<SupplierPage />) },
               { path: '/suppliers/:id', element: suspense(<SupplierDetailPage />) },
               { path: '/purchase-orders', element: suspense(<PurchaseOrdersPage />) },
@@ -180,42 +121,26 @@ export const appRoutes = [
               { path: '/developer', element: suspense(<DeveloperPage />) },
               { path: '/api-validation', element: suspense(<ApiValidationPage />) },
               { path: '/customers', element: suspense(<CustomersPage />) },
-              { path: '/customers/analytics', element: suspense(<CustomerAnalyticsPage />) },
               { path: '/customers/:customerId', element: suspense(<CustomerDetailPage />) },
               { path: '/staff-performance', element: suspense(<StaffPerformancePage />) },
-              { path: routes.analyticsStaff, element: suspense(<AnalyticsStaffPage />) },
               { path: '/staff-performance/:userId', element: suspense(<RoleGuard role="owner"><StaffPerformanceDetailPage /></RoleGuard>) },
               { path: '/pricing', element: suspense(<RoleGuard role="owner"><PricingPage /></RoleGuard>) },
-              { path: routes.inventoryPricing, element: suspense(<RoleGuard role="owner"><InventoryPricingPage /></RoleGuard>) },
-              { path: routes.decisions, element: suspense(<RoleGuard role="owner"><DecisionsPage /></RoleGuard>) },
+              { path: '/decisions', element: suspense(<RoleGuard role="owner"><DecisionsPage /></RoleGuard>) },
               { path: '/e-invoicing', element: suspense(<EInvoicingPage />) },
-              { path: routes.ai, element: suspense(<AiAssistantPage />) },
-              { path: routes.aiTools, element: suspense(<AiToolsPage />) },
-              { path: routes.legacyAiAssistant, element: suspense(<LegacyAiRedirect />) },
-              { path: routes.legacyAiTools, element: suspense(<LegacyAiToolsRedirect />) },
-              { path: routes.legacyDecisions, element: suspense(<LegacyDecisionsRedirect />) },
+              { path: '/ai-assistant', element: suspense(<AiAssistantPage />) },
               { path: '/offline', element: suspense(<OfflinePage />) },
-              { path: routes.analyticsOffline, element: suspense(<AnalyticsOfflinePage />) },
               { path: '/marketplace', element: suspense(<MarketplacePage />) },
               { path: '/chain', element: suspense(<ChainPage />) },
               { path: '/whatsapp', element: suspense(<WhatsAppPage />) },
               { path: '/i18n', element: suspense(<I18nPage />) },
               { path: '/analytics', element: suspense(<RoleGuard role="owner"><AnalyticsPage /></RoleGuard>) },
               { path: '/market-intelligence', element: suspense(<RoleGuard role="owner"><MarketIntelligencePage /></RoleGuard>) },
-              { path: routes.analyticsMarket, element: suspense(<RoleGuard role="owner"><AnalyticsMarketPage /></RoleGuard>) },
-              { path: routes.analyticsForecasting, element: suspense(<RoleGuard role="owner"><AnalyticsForecastingPage /></RoleGuard>) },
               { path: '/events', element: suspense(<EventsPage />) },
               { path: '/gst', element: suspense(<RoleGuard role="owner"><GstPage /></RoleGuard>) },
               { path: '/loyalty', element: suspense(<LoyaltyPage />) },
               { path: '/credit', element: suspense(<CreditPage />) },
               { path: '/forecasting', element: suspense(<RoleGuard role="owner"><ForecastingPage /></RoleGuard>) },
               { path: '/finance', element: suspense(<FinancePage />) },
-              { path: '/finance/accounts', element: suspense(<RoleGuard role="owner"><FinanceAccountsPage /></RoleGuard>) },
-              { path: '/finance/credit-score', element: suspense(<RoleGuard role="owner"><FinanceCreditScorePage /></RoleGuard>) },
-              { path: '/finance/kyc', element: suspense(<RoleGuard role="owner"><FinanceKycPage /></RoleGuard>) },
-              { path: '/finance/ledger', element: suspense(<RoleGuard role="owner"><FinanceLedgerPage /></RoleGuard>) },
-              { path: '/finance/treasury', element: suspense(<RoleGuard role="owner"><FinanceTreasuryPage /></RoleGuard>) },
-              { path: '/finance/loans', element: suspense(<RoleGuard role="owner"><FinanceLoansPage /></RoleGuard>) },
               { path: '/403', element: suspense(<ForbiddenPage />) },
               { path: '/500', element: suspense(<ServerErrorPage />) },
               { path: '*', element: suspense(<NotFoundPage />) },
@@ -225,6 +150,4 @@ export const appRoutes = [
       },
     ],
   },
-];
-
-export const router = createBrowserRouter(appRoutes);
+]);

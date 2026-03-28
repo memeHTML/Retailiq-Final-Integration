@@ -2,7 +2,7 @@
  * src/api/finance.ts
  * Backend-aligned finance adapters
  */
-import { requestRaw } from './client';
+import { request } from './client';
 
 const FINANCE_BASE = '/api/v2/finance';
 
@@ -28,7 +28,6 @@ export interface KYCSubmission {
 export interface CreditScore {
   score: number;
   max_score: number;
-  tier?: string;
   last_updated: string;
   factors: string[];
 }
@@ -72,7 +71,6 @@ export interface LoanApplication {
   disbursed_at?: string;
   rejection_reason?: string;
   monthly_installment?: number;
-  outstanding?: number;
 }
 
 export interface LoanApplicationRequest {
@@ -151,7 +149,6 @@ interface RawLoanApplication {
   amount?: number;
   status?: string;
   applied_at?: string;
-  outstanding?: number;
 }
 
 interface RawAccount {
@@ -166,7 +163,6 @@ interface RawLedgerEntry {
   account_id?: string | number;
   type?: string;
   amount?: number;
-  balance_after?: number;
   description?: string;
   created_at?: string;
 }
@@ -209,7 +205,6 @@ const mapLoan = (loan: RawLoanApplication): LoanApplication => ({
   tenure_months: 0,
   status: mapLoanStatus(loan.status),
   submitted_at: loan.applied_at ?? nowIso(),
-  outstanding: Number(loan.outstanding ?? loan.amount ?? 0),
 });
 
 const mapAccountType = (type?: string): FinancialAccount['type'] => {
@@ -232,11 +227,11 @@ const defaultTreasuryConfig = (): TreasuryConfig => ({
   settlement_account_id: '',
 });
 
-const fetchFinanceDashboard = () => requestRaw<FinanceDashboardResponse>({ url: `${FINANCE_BASE}/dashboard`, method: 'GET' });
+const fetchFinanceDashboard = () => request<FinanceDashboardResponse>({ url: `${FINANCE_BASE}/dashboard`, method: 'GET' });
 
 export const financeApi = {
   submitKYC: async (data: KYCSubmission): Promise<KYCRecord> => {
-    const response = await requestRaw<{ status?: string }>({
+    const response = await request<{ status?: string }>({
       url: `${FINANCE_BASE}/kyc/submit`,
       method: 'POST',
       data: {
@@ -260,7 +255,7 @@ export const financeApi = {
   },
 
   getKYCStatus: async (): Promise<KYCRecord | null> => {
-    const response = await requestRaw<{ status?: string; tax_id?: string; updated_at?: string }>({
+    const response = await request<{ status?: string; tax_id?: string; updated_at?: string }>({
       url: `${FINANCE_BASE}/kyc/status`,
       method: 'GET',
     });
@@ -280,7 +275,7 @@ export const financeApi = {
   },
 
   getCreditScore: async (): Promise<CreditScore> => {
-    const response = await requestRaw<{ score?: number; tier?: string; factors?: string[]; last_updated?: string }>({
+    const response = await request<{ score?: number; factors?: string[]; last_updated?: string }>({
       url: `${FINANCE_BASE}/credit-score`,
       method: 'GET',
     });
@@ -288,14 +283,13 @@ export const financeApi = {
     return {
       score: Number(response.score ?? 0),
       max_score: 900,
-      tier: response.tier,
       last_updated: response.last_updated ?? nowIso(),
       factors: Array.isArray(response.factors) ? response.factors : [],
     };
   },
 
   refreshCreditScore: async (): Promise<CreditScore> => {
-    await requestRaw<{ score?: number }>({ url: `${FINANCE_BASE}/credit-score/refresh`, method: 'POST' });
+    await request<{ score?: number }>({ url: `${FINANCE_BASE}/credit-score/refresh`, method: 'POST' });
     return financeApi.getCreditScore();
   },
 
@@ -313,7 +307,7 @@ export const financeApi = {
   },
 
   getCreditTransactions: async (): Promise<CreditTransaction[]> => {
-    const response = await requestRaw<RawLedgerEntry[]>({
+    const response = await request<RawLedgerEntry[]>({
       url: `${FINANCE_BASE}/ledger`,
       method: 'GET',
     });
@@ -333,12 +327,12 @@ export const financeApi = {
   getLoanProducts: async (): Promise<LoanProduct[]> => [],
 
   getLoanApplications: async (): Promise<LoanApplication[]> => {
-    const response = await requestRaw<RawLoanApplication[]>({ url: `${FINANCE_BASE}/loans`, method: 'GET' });
+    const response = await request<RawLoanApplication[]>({ url: `${FINANCE_BASE}/loans`, method: 'GET' });
     return Array.isArray(response) ? response.map(mapLoan) : [];
   },
 
   disburseLoan: async (loanId: string): Promise<{ ledger_txn_id?: string; message: string }> => {
-    const response = await requestRaw<{ ledger_txn_id?: string; message?: string }>({
+    const response = await request<{ ledger_txn_id?: string; message?: string }>({
       url: `${FINANCE_BASE}/loans/${loanId}/disburse`,
       method: 'POST',
     });
@@ -351,7 +345,7 @@ export const financeApi = {
 
   applyForLoan: async (data: LoanApplicationRequest): Promise<LoanApplication> => {
     const termMonths = Number.parseInt(data.tenure_months, 10) || 0;
-    const response = await requestRaw<{ application_id?: string | number; status?: string }>({
+    const response = await request<{ application_id?: string | number; status?: string }>({
       url: `${FINANCE_BASE}/loans/apply`,
       method: 'POST',
       data: {
@@ -381,7 +375,7 @@ export const financeApi = {
   },
 
   getFinancialAccounts: async (): Promise<FinancialAccount[]> => {
-    const response = await requestRaw<RawAccount[]>({ url: `${FINANCE_BASE}/accounts`, method: 'GET' });
+    const response = await request<RawAccount[]>({ url: `${FINANCE_BASE}/accounts`, method: 'GET' });
 
     return Array.isArray(response)
       ? response.map((account) => ({
@@ -396,7 +390,7 @@ export const financeApi = {
   },
 
   getLedgerEntries: async (accountId?: string): Promise<LedgerEntry[]> => {
-    const response = await requestRaw<RawLedgerEntry[]>({
+    const response = await request<RawLedgerEntry[]>({
       url: `${FINANCE_BASE}/ledger`,
       method: 'GET',
       params: accountId ? { account_id: accountId } : undefined,
@@ -411,13 +405,13 @@ export const financeApi = {
           description: entry.description ?? '',
           reference_id: entry.txn_id,
           created_at: entry.created_at ?? nowIso(),
-          balance_after: Number(entry.balance_after ?? entry.amount ?? 0),
+          balance_after: Number(entry.amount ?? 0),
         }))
       : [];
   },
 
   getTreasuryBalance: async (): Promise<TreasuryBalance> => {
-    const response = await requestRaw<{ available?: number; yield_bps?: number; currency?: string }>({
+    const response = await request<{ available?: number; yield_bps?: number; currency?: string }>({
       url: `${FINANCE_BASE}/treasury/balance`,
       method: 'GET',
     });
@@ -446,7 +440,7 @@ export const financeApi = {
   },
 
   getTreasuryConfig: async (): Promise<TreasuryConfig> => {
-    const response = await requestRaw<{
+    const response = await request<{
       auto_transfer_enabled?: boolean;
       reserve_percentage?: number;
       daily_transfer_limit?: number;
@@ -471,7 +465,7 @@ export const financeApi = {
   },
 
   updateTreasuryConfig: async (data: Partial<TreasuryConfig>): Promise<TreasuryConfig> => {
-    await requestRaw<{ active?: boolean }>({
+    await request<{ active?: boolean }>({
       url: `${FINANCE_BASE}/treasury/sweep-config`,
       method: 'PUT',
       data: {
@@ -487,7 +481,7 @@ export const financeApi = {
   },
 
   getTreasuryTransactions: async (): Promise<TreasuryTransaction[]> => {
-    const response = await requestRaw<TreasuryTransaction[]>({
+    const response = await request<TreasuryTransaction[]>({
       url: `${FINANCE_BASE}/treasury/transactions`,
       method: 'GET',
     });

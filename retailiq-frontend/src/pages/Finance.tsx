@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -31,7 +30,6 @@ import { uiStore } from '@/stores/uiStore';
 import { formatCurrency } from '@/utils/numbers';
 import { formatDate } from '@/utils/dates';
 import { normalizeApiError } from '@/utils/errors';
-import { routes } from '@/routes/routes';
 import type { Column as _Column } from '@/components/ui/DataTable';
 import type { CreditTransaction, FinancialAccount, LoanApplication, TreasuryTransaction } from '@/api/finance';
 
@@ -40,7 +38,6 @@ type FinanceTab = 'overview' | 'kyc' | 'credit' | 'loans' | 'treasury';
 export default function FinancePage() {
   const user = authStore((state) => state.user);
   const addToast = uiStore((state) => state.addToast);
-  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<FinanceTab>('overview');
   const [kycForm, setKycForm] = useState({
@@ -311,18 +308,6 @@ export default function FinancePage() {
 
       {!isLoading && activeTab === 'overview' && (
         <div className="space-y-6">
-          <Card>
-            <CardHeader><CardTitle>Finance hub shortcuts</CardTitle></CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              <Button variant="secondary" onClick={() => navigate(routes.financeAccounts)}>Accounts</Button>
-              <Button variant="secondary" onClick={() => navigate(routes.financeCreditScore)}>Credit score</Button>
-              <Button variant="secondary" onClick={() => navigate(routes.financeKyc)}>Finance KYC</Button>
-              <Button variant="secondary" onClick={() => navigate(routes.financeLedger)}>Ledger</Button>
-              <Button variant="secondary" onClick={() => navigate(routes.financeTreasury)}>Treasury</Button>
-              <Button variant="secondary" onClick={() => navigate(routes.financeLoans)}>Loans</Button>
-            </CardContent>
-          </Card>
-
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card>
               <CardHeader><CardTitle className="text-sm font-medium text-gray-500">Credit Score</CardTitle></CardHeader>

@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { SettingsLayout } from '@/components/layout/SettingsLayout';
+import { PageFrame } from '@/components/layout/PageFrame';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { storeProfileSchema, type StoreProfileFormValues } from '@/types/schemas';
@@ -58,7 +58,7 @@ export default function StoreProfilePage() {
   }
 
   if (profileQuery.isLoading) {
-    return <SettingsLayout active="profile" title="Store profile" subtitle="Manage your store configuration."><SkeletonLoader variant="rect" height={340} /></SettingsLayout>;
+    return <PageFrame title="Store profile" subtitle="Manage your store configuration."><SkeletonLoader variant="rect" height={340} /></PageFrame>;
   }
 
   const onSubmit = handleSubmit(async (values) => {
@@ -78,7 +78,7 @@ export default function StoreProfilePage() {
   });
 
   return (
-    <SettingsLayout active="profile" title="Store profile" subtitle="Manage your store configuration.">
+    <PageFrame title="Store profile" subtitle="Manage your store configuration.">
       <form className="stack" onSubmit={onSubmit} noValidate>
         <div className="grid grid--2">
           <label className="field"><span>Store name</span><input className="input" {...register('store_name')} /></label>
@@ -102,6 +102,6 @@ export default function StoreProfilePage() {
         {serverMessage ? <div className="muted">{serverMessage}</div> : null}
         <button className="button" type="submit" disabled={isSubmitting || updateMutation.isPending}>{isSubmitting || updateMutation.isPending ? 'Saving…' : 'Save store profile'}</button>
       </form>
-    </SettingsLayout>
+    </PageFrame>
   );
 }

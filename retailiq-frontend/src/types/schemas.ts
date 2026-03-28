@@ -130,7 +130,6 @@ export const productSchema = z.object({
   supplier_name: z.string().nullable().optional(),
   barcode: z.string().nullable().optional(),
   image_url: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
   lead_time_days: z.number().nonnegative().nullable().optional(),
   hsn_code: z.string().nullable().optional(),
 }).refine((value) => value.selling_price >= value.cost_price, {
@@ -153,7 +152,7 @@ export type StockUpdateFormValues = z.infer<typeof stockUpdateSchema>;
 export const stockAuditSchema = z.object({
   items: z.array(z.object({
     product_id: z.number(),
-    counted_quantity: z.number().int(),
+    actual_qty: z.number().int(),
   })).min(1, 'At least one item is required'),
   notes: z.string().nullable().optional(),
 });

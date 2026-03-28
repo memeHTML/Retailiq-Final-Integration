@@ -17,8 +17,6 @@ import type {
 
 export const useProductsQuery = (filters: ListProductsRequest) => useQuery({ queryKey: ['inventory', 'list', filters], queryFn: () => inventoryApi.listProducts(filters), staleTime: 60_000 });
 export const useProductQuery = (productId: number | string) => useQuery({ queryKey: ['inventory', 'detail', productId], queryFn: () => inventoryApi.getProductById(productId), staleTime: 60_000, enabled: Boolean(productId) });
-export const useInventoryAlertsQuery = () =>
-  useQuery({ queryKey: ['inventory', 'alerts'], queryFn: inventoryApi.getInventoryAlerts, staleTime: 30_000 });
 
 export const useCreateProductMutation = () => {
   const queryClient = useQueryClient();
@@ -68,18 +66,6 @@ export const useStockAuditMutation = () => {
     mutationFn: (payload: StockAuditRequest) => inventoryApi.stockAudit(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory', 'list'] });
-    },
-  });
-};
-
-export const useDismissInventoryAlertMutation = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (alertId: number | string) => inventoryApi.dismissInventoryAlert(alertId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory', 'alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'alerts-feed'] });
     },
   });
 };

@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { SettingsLayout } from '@/components/layout/SettingsLayout';
+import { PageFrame } from '@/components/layout/PageFrame';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { storeTaxConfigSchema, type StoreTaxConfigFormValues } from '@/types/schemas';
@@ -36,7 +36,7 @@ export default function StoreTaxConfigPage() {
   }
 
   if (query.isLoading) {
-    return <SettingsLayout active="tax" title="Tax config" subtitle="Update GST mapping by category."><SkeletonLoader variant="rect" height={320} /></SettingsLayout>;
+    return <PageFrame title="Tax config" subtitle="Update GST mapping by category."><SkeletonLoader variant="rect" height={320} /></PageFrame>;
   }
 
   const onSubmit = handleSubmit(async (values) => {
@@ -55,7 +55,7 @@ export default function StoreTaxConfigPage() {
   });
 
   return (
-    <SettingsLayout active="tax" title="Tax config" subtitle="Update GST mapping by category.">
+    <PageFrame title="Tax config" subtitle="Update GST mapping by category.">
       <form className="stack" onSubmit={onSubmit} noValidate>
         {query.data?.taxes.map((tax, index) => (
           <div key={tax.category_id} className="grid grid--2">
@@ -71,6 +71,6 @@ export default function StoreTaxConfigPage() {
         {serverMessage ? <div className="muted">{serverMessage}</div> : null}
         <button className="button" type="submit" disabled={isSubmitting || mutation.isPending}>{isSubmitting || mutation.isPending ? 'Saving…' : 'Save tax config'}</button>
       </form>
-    </SettingsLayout>
+    </PageFrame>
   );
 }

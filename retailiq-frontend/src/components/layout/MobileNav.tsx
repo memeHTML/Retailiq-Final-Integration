@@ -1,13 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { BarChart3, Boxes, FileText, Home, ShoppingCart, Users } from 'lucide-react';
+import { BarChart3, Boxes, Home, ShoppingCart, Users } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import { routes } from '@/routes/routes';
 
 const items = [
   { label: 'Home', to: '/dashboard', icon: Home },
   { label: 'Inventory', to: '/inventory', icon: Boxes },
-  { label: 'POS', to: routes.pos, icon: ShoppingCart },
-  { label: 'Transactions', to: routes.transactions, icon: FileText },
+  { label: 'POS', to: '/pos', icon: ShoppingCart },
   { label: 'Customers', to: '/customers', icon: Users },
   { label: 'Analytics', to: '/analytics', icon: BarChart3 },
 ];

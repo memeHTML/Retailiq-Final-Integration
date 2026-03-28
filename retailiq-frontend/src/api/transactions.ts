@@ -22,21 +22,7 @@ import type {
 export const createTransaction = (payload: CreateTransactionRequest) => request<CreateTransactionResponse>({ url: '/api/v1/transactions', method: 'POST', data: payload });
 export const createTransactionBatch = (payload: BatchTransactionCreateRequest) => request<BatchTransactionCreateResponse>({ url: '/api/v1/transactions/batch', method: 'POST', data: payload });
 export const listTransactions = async (filters: ListTransactionsRequest): Promise<ListTransactionsResponse> => {
-  const {
-    date_from,
-    date_to,
-    start_date,
-    end_date,
-    ...rest
-  } = filters;
-
-  const params = {
-    ...rest,
-    start_date: start_date ?? date_from,
-    end_date: end_date ?? date_to,
-  };
-
-  const { data, meta } = await requestEnvelope<ListTransactionsResponse['data']>({ url: '/api/v1/transactions', method: 'GET', params });
+  const { data, meta } = await requestEnvelope<ListTransactionsResponse['data']>({ url: '/api/v1/transactions', method: 'GET', params: filters });
   return {
     data: Array.isArray(data) ? data : [],
     page: Number(meta?.page ?? filters.page ?? 1),

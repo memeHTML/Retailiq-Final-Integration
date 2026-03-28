@@ -75,7 +75,6 @@ export interface Product {
   supplier_name: string | null;
   barcode: string | null;
   image_url: string | null;
-  description?: string | null;
   is_active: boolean;
   lead_time_days: number | null;
   hsn_code: string | null;
@@ -524,15 +523,6 @@ export interface DashboardIncident {
   created_at: string;
   updated_at: string;
   estimated_resolution: string;
-}
-
-export interface InventoryAlert {
-  alert_id: number;
-  alert_type: string;
-  priority: string;
-  product_id: number | null;
-  message: string;
-  created_at: string | null;
 }
 
 export interface OfflineSnapshot {
