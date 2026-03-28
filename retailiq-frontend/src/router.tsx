@@ -5,6 +5,8 @@
  */
 import { Suspense, type ReactNode } from 'react';
 import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { PageErrorFallback } from '@/components/shared/PageErrorFallback';
 import { routes } from '@/routes/routes';
 import { AuthGuard, PublicOnlyGuard, RoleGuard } from '@/utils/guards';
 import { AppShell } from '@/components/layout/AppShell';
@@ -42,6 +44,7 @@ import {
   InventoryPage,
   InventorySyncPage,
   OmnichannelPage,
+  OrdersPage,
   KycPage,
   LoginPage,
   LoyaltyPage,
@@ -86,7 +89,9 @@ import {
 } from './router-pages';
 
 const suspense = (element: ReactNode) => (
-  <Suspense fallback={<div className="app-content">Loading…</div>}>{element}</Suspense>
+  <ErrorBoundary fallback={<PageErrorFallback />}>
+    <Suspense fallback={<div className="app-content">Loading…</div>}>{element}</Suspense>
+  </ErrorBoundary>
 );
 
 function LegacyTransactionRedirect() {
@@ -132,7 +137,7 @@ export const appRoutes = [
             element: <AppShell />,
             children: [
               { path: '/', element: <Navigate to="/dashboard" replace /> },
-              { path: '/orders', element: <Navigate to="/orders/pos" replace /> },
+              { path: '/orders', element: suspense(<OrdersPage />) },
               { path: '/pos', element: <Navigate to="/orders/pos" replace /> },
               { path: '/transactions', element: <Navigate to="/orders/transactions" replace /> },
               { path: '/transactions/:id', element: suspense(<LegacyTransactionRedirect />) },

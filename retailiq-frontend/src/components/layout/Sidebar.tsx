@@ -43,6 +43,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'Orders',
     items: [
+      { label: 'Orders Hub', to: routes.orders, icon: LayoutDashboard },
       { label: 'POS / New Sale', to: routes.pos, icon: ShoppingCart },
       { label: 'Transactions', to: routes.transactions, icon: FileText },
       { label: 'Returns', to: routes.transactions, icon: RefreshCcw },

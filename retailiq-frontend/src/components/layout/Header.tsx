@@ -12,6 +12,7 @@ const titleMap: Record<string, string> = {
   [routes.dashboardAlerts]: 'Smart Alerts',
   [routes.dashboardCalendar]: 'Financial Calendar',
   [routes.dashboardReports]: 'Reports',
+  [routes.orders]: 'Orders Hub',
   [routes.inventory]: 'Inventory',
   [routes.pos]: 'Point of sale',
   [routes.transactions]: 'Transactions',
@@ -80,6 +81,7 @@ export function Header({ onOpenPalette, onMenuClick, storeName }: HeaderProps) {
     if (pathname.startsWith('/dashboard/alerts')) return 'Smart Alerts';
     if (pathname.startsWith('/dashboard/calendar')) return 'Financial Calendar';
     if (pathname.startsWith('/dashboard/reports')) return 'Reports';
+    if (pathname === routes.orders) return 'Orders Hub';
     if (pathname.startsWith('/orders/pos')) return 'Point of sale';
     if (pathname.startsWith('/orders/transactions')) return 'Transactions';
     if (pathname.startsWith('/settings/categories')) return 'Categories';
@@ -123,6 +125,7 @@ export function Header({ onOpenPalette, onMenuClick, storeName }: HeaderProps) {
     if (pathname.startsWith('/dashboard/alerts')) return ['Dashboard', 'Smart Alerts'];
     if (pathname.startsWith('/dashboard/calendar')) return ['Dashboard', 'Financial Calendar'];
     if (pathname.startsWith('/dashboard/reports')) return ['Dashboard', 'Reports'];
+    if (pathname === routes.orders) return ['Orders', 'Hub'];
     if (pathname.startsWith('/inventory')) return ['Inventory'];
     if (pathname.startsWith('/inventory/pricing')) return ['Inventory', 'Pricing'];
     if (pathname.startsWith('/omnichannel')) return ['Orders', 'Omnichannel'];

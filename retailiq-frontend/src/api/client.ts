@@ -56,7 +56,8 @@ const redirectToLogin = () => {
   }
 
   redirecting = true;
-  window.location.assign('/login');
+  window.history.replaceState({}, '', '/login');
+  window.dispatchEvent(new PopStateEvent('popstate'));
 };
 
 const getRefreshToken = () => authStore.getState().refreshToken ?? getStoredRefreshToken();

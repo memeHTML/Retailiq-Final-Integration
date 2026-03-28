@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { CustomerForm } from '@/features/customers/CustomerForm';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { normalizeApiError } from '@/utils/errors';
 import {
   useCustomerQuery,
@@ -18,6 +19,10 @@ import {
   useUpdateCustomerMutation,
 } from '@/hooks/customers';
 import type { CustomerTransactionsRequest } from '@/types/api';
+
+const CustomerLoyaltyTab = lazy(() => import('@/features/customers/CustomerLoyaltyTab'));
+const CustomerCreditTab = lazy(() => import('@/features/customers/CustomerCreditTab'));
+const CustomerWhatsAppTab = lazy(() => import('@/features/customers/CustomerWhatsAppTab'));
 
 type ActiveTab = 'overview' | 'transactions' | 'loyalty' | 'credit' | 'whatsapp';
 
@@ -105,6 +110,18 @@ export default function CustomerDetailPage() {
 
   const memberSince = formatDate(customer.created_at);
   const initials = getInitials(customer.name);
+  const lazyCardFallback = (title: string) => (
+    <Card>
+      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+      <CardContent>
+        <SkeletonLoader variant="rect" height={160} />
+      </CardContent>
+    </Card>
+  );
+
+  const lazyCardError = (title: string) => (
+    <EmptyState title={`${title} unavailable`} body={`${title} could not be loaded right now.`} />
+  );
 
   return (
     <PageFrame
@@ -308,32 +325,29 @@ export default function CustomerDetailPage() {
         </Card>
       )}
 
-      {activeTab === 'loyalty' && (
-        <Card>
-          <CardHeader><CardTitle>Loyalty</CardTitle></CardHeader>
-          <CardContent>
-            <EmptyState title="Coming Soon" body="Loyalty management for customer detail will be delivered by Branch B." />
-          </CardContent>
-        </Card>
-      )}
+      {activeTab === 'loyalty' ? (
+        <ErrorBoundary fallback={lazyCardError('Loyalty')}>
+          <Suspense fallback={lazyCardFallback('Loyalty')}>
+            <CustomerLoyaltyTab customerId={id} customerName={customer.name} />
+          </Suspense>
+        </ErrorBoundary>
+      ) : null}
 
-      {activeTab === 'credit' && (
-        <Card>
-          <CardHeader><CardTitle>Credit</CardTitle></CardHeader>
-          <CardContent>
-            <EmptyState title="Coming Soon" body="Credit details and repayment controls will be delivered by Branch B." />
-          </CardContent>
-        </Card>
-      )}
+      {activeTab === 'credit' ? (
+        <ErrorBoundary fallback={lazyCardError('Credit')}>
+          <Suspense fallback={lazyCardFallback('Credit')}>
+            <CustomerCreditTab customerId={id} customerName={customer.name} />
+          </Suspense>
+        </ErrorBoundary>
+      ) : null}
 
-      {activeTab === 'whatsapp' && (
-        <Card>
-          <CardHeader><CardTitle>WhatsApp</CardTitle></CardHeader>
-          <CardContent>
-            <EmptyState title="Coming Soon" body="WhatsApp contact and outreach tools will be delivered by Branch B." />
-          </CardContent>
-        </Card>
-      )}
+      {activeTab === 'whatsapp' ? (
+        <ErrorBoundary fallback={lazyCardError('WhatsApp')}>
+          <Suspense fallback={lazyCardFallback('WhatsApp')}>
+            <CustomerWhatsAppTab customerId={id} customerName={customer.name} mobileNumber={customer.mobile_number} />
+          </Suspense>
+        </ErrorBoundary>
+      ) : null}
 
       <CustomerForm
         open={editOpen}

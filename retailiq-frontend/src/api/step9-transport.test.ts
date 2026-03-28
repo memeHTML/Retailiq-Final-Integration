@@ -21,13 +21,25 @@ describe('Prompt 00 step 9 transport verification', () => {
       const authHeader = req.headers.authorization ?? '';
       const chunks: Buffer[] = [];
 
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': 'http://localhost:3000',
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      } as const;
+
+      if (method === 'OPTIONS') {
+        res.writeHead(204, corsHeaders);
+        res.end();
+        return;
+      }
+
       req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
       await new Promise<void>((resolve) => req.on('end', resolve));
       const bodyText = Buffer.concat(chunks).toString('utf8');
       const body = bodyText ? JSON.parse(bodyText) : null;
 
       const sendJson = (status: number, payload: unknown) => {
-        res.writeHead(status, { 'Content-Type': 'application/json' });
+        res.writeHead(status, { 'Content-Type': 'application/json', ...corsHeaders });
         res.end(JSON.stringify(payload));
       };
 
