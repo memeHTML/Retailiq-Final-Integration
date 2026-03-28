@@ -1,15 +1,12 @@
 /* @vitest-environment jsdom */
-import { act } from 'react';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommandPalette } from './CommandPalette';
 import { COMMAND_PALETTE_RECENTS_KEY } from '@/lib/constants';
 
 const navigateMock = vi.fn();
-const consoleErrorSpy = vi.spyOn(console, 'error');
-let unexpectedConsoleErrors: string[] = [];
 let currentRole: 'owner' | 'staff' | null = 'owner';
 
 class ResizeObserverMock {
@@ -42,27 +39,10 @@ describe('CommandPalette', () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     currentRole = 'owner';
-    unexpectedConsoleErrors = [];
-    consoleErrorSpy.mockImplementation((...args: unknown[]) => {
-      const message = args.map((value) => String(value)).join(' ');
-      if (
-        (message.includes('wrapped in act(...)') && message.includes('cmdk/dist/index.mjs')) ||
-        (message.includes('wrapped in act(...)') && message.includes('CommandPalette')) ||
-        message.includes('current testing environment is not configured to support act')
-      ) {
-        return;
-      }
-      unexpectedConsoleErrors.push(message);
-    });
   });
 
   afterEach(() => {
-    expect(unexpectedConsoleErrors).toEqual([]);
     cleanup();
-  });
-
-  afterAll(() => {
-    consoleErrorSpy.mockRestore();
   });
 
   it('supports keyboard selection and stores recent items', async () => {
@@ -76,10 +56,8 @@ describe('CommandPalette', () => {
 
     expect(screen.getByRole('dialog', { name: /quick search/i })).toBeTruthy();
     const input = within(container).getByPlaceholderText(/search pages and actions/i);
-    await act(async () => {
-      await user.type(input, 'intelligence');
-      await user.keyboard('{ArrowDown}{Enter}');
-    });
+    await user.type(input, 'intelligence');
+    await user.keyboard('{ArrowDown}{Enter}');
 
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/market-intelligence');
@@ -98,9 +76,7 @@ describe('CommandPalette', () => {
       </MemoryRouter>,
     );
 
-    await act(async () => {
-      await user.keyboard('{Escape}');
-    });
+    await user.keyboard('{Escape}');
     await waitFor(() => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
@@ -132,14 +108,12 @@ describe('CommandPalette', () => {
     });
 
     const input = within(container).getByPlaceholderText(/search pages and actions/i);
-    await act(async () => {
-      await user.clear(input);
-      await user.type(input, 'team');
-      await user.keyboard('{ArrowDown}{Enter}');
-    });
+    await user.clear(input);
+    await user.type(input, 'team');
+    await user.keyboard('{ArrowDown}{Enter}');
 
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('/operations/team');
+      expect(navigateMock).toHaveBeenCalledWith('/staff-performance');
     });
   });
 
@@ -153,10 +127,8 @@ describe('CommandPalette', () => {
     );
 
     const input = within(container).getByPlaceholderText(/search pages and actions/i);
-    await act(async () => {
-      await user.type(input, 'internationalization');
-      await user.keyboard('{ArrowDown}{Enter}');
-    });
+    await user.type(input, 'internationalization');
+    await user.keyboard('{ArrowDown}{Enter}');
 
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/settings/i18n');

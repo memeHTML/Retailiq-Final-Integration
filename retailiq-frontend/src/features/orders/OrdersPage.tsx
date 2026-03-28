@@ -11,8 +11,8 @@ import { useMarketplaceOrdersQuery, useMarketplaceRecommendationsQuery } from '@
 import { formatDate } from '@/utils/dates';
 import { formatCurrency } from '@/utils/numbers';
 import type { ListMarketplaceOrdersResponse, MarketplaceRecommendation } from '@/types/api';
-import type { PurchaseOrderListItem } from '@/api/purchaseOrders';
 import type { TransactionSummaryRow } from '@/types/models';
+import { getPurchaseOrderStatusVariant, normalizePurchaseOrderPreviewRow, type PurchaseOrderPreviewRow } from './models';
 
 type MarketplaceOrderRow = ListMarketplaceOrdersResponse['orders'][number];
 
@@ -24,7 +24,7 @@ export default function OrdersPage() {
   const marketplaceRecommendationsQuery = useMarketplaceRecommendationsQuery();
 
   const latestTransactions = recentTransactionsQuery.data?.data ?? [];
-  const purchaseOrders = (purchaseOrdersQuery.data ?? []) as PurchaseOrderListItem[];
+  const purchaseOrders = (purchaseOrdersQuery.data ?? []).map(normalizePurchaseOrderPreviewRow);
   const marketplaceOrders = marketplaceOrdersQuery.data?.orders ?? [];
   const marketplaceRecommendations = (marketplaceRecommendationsQuery.data ?? []) as MarketplaceRecommendation[];
 
@@ -35,12 +35,12 @@ export default function OrdersPage() {
     { key: 'return', header: 'Return', render: (row) => (row.is_return ? 'Yes' : 'No') },
   ];
 
-  const purchaseOrderColumns: Column<PurchaseOrderListItem>[] = [
+  const purchaseOrderColumns: Column<PurchaseOrderPreviewRow>[] = [
     { key: 'id', header: 'PO Number', render: (row) => row.id },
-    { key: 'supplier', header: 'Supplier', render: (row) => String(row.supplier_id) },
-    { key: 'status', header: 'Status', render: (row) => <Badge variant="secondary">{row.status}</Badge> },
-    { key: 'expected', header: 'Expected', render: (row) => (row.expected_delivery_date ? formatDate(row.expected_delivery_date) : '—') },
-    { key: 'created', header: 'Created', render: (row) => formatDate(row.created_at) },
+    { key: 'supplier', header: 'Supplier', render: (row) => row.supplierId },
+    { key: 'status', header: 'Status', render: (row) => <Badge variant={getPurchaseOrderStatusVariant(row.status)}>{row.status}</Badge> },
+    { key: 'expected', header: 'Expected', render: (row) => (row.expectedDeliveryDate ? formatDate(row.expectedDeliveryDate) : '-') },
+    { key: 'created', header: 'Created', render: (row) => (row.createdAt ? formatDate(row.createdAt) : '-') },
   ];
 
   const marketplaceOrderColumns: Column<MarketplaceOrderRow>[] = [
@@ -53,7 +53,7 @@ export default function OrdersPage() {
 
   const recommendationColumns: Column<MarketplaceRecommendation>[] = [
     { key: 'product', header: 'Product', render: (row) => row.product_name },
-    { key: 'category', header: 'Category', render: (row) => row.category ?? '—' },
+    { key: 'category', header: 'Category', render: (row) => row.category ?? '-' },
     {
       key: 'urgency',
       header: 'Urgency',

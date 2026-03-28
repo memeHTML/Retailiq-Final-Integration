@@ -78,9 +78,12 @@ export const useWhatsAppMessagesQuery = (params?: {
   page?: number;
   limit?: number;
 }) => {
+  const hasRecipientFilter = Boolean(params?.to || params?.from);
+
   return useQuery({
     queryKey: whatsappKeys.messages(params),
     queryFn: () => whatsappApi.whatsappApi.getMessages(params),
+    enabled: hasRecipientFilter,
     staleTime: 30000, // 30 seconds
   });
 };
