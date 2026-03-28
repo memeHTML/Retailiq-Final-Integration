@@ -14,7 +14,11 @@ export function DialogTrigger({ children }: { children: ReactNode }) {
 }
 
 export function DialogContent({ children }: { children: ReactNode }) {
-  return <div className="dialog">{children}</div>;
+  return (
+    <div className="dialog" role="dialog" aria-modal="true">
+      {children}
+    </div>
+  );
 }
 
 export default Dialog;

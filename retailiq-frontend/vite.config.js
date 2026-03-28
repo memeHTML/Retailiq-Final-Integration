@@ -1,5 +1,5 @@
 /**
- * vite.config.ts
+ * vite.config.js
  * Oracle Document sections consumed: 1, 2, 8, 12
  * Last item from Section 11 risks addressed here: API proxy alignment
  */

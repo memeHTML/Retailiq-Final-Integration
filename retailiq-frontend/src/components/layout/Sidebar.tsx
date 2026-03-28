@@ -102,11 +102,11 @@ const navGroups: NavGroup[] = [
   {
     title: 'Settings',
     items: [
-      { label: 'Store Profile', to: routes.settings, icon: Store, ownerOnly: true },
-      { label: 'Categories', to: '/store/categories', icon: Boxes, ownerOnly: true },
-      { label: 'Tax Config', to: '/store/tax-config', icon: FileText, ownerOnly: true },
+      { label: 'Store Profile', to: routes.settingsProfile, icon: Store, ownerOnly: true },
+      { label: 'Categories', to: routes.settingsCategories, icon: Boxes, ownerOnly: true },
+      { label: 'Tax Config', to: routes.settingsTax, icon: FileText, ownerOnly: true },
+      { label: 'Security / MFA', to: routes.settingsSecurity, icon: LockKeyhole },
       { label: 'Language / i18n', to: routes.i18n, icon: Globe2 },
-      { label: 'Security / MFA', to: routes.security, icon: LockKeyhole },
     ],
   },
 ];

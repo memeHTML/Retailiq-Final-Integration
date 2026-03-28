@@ -26,7 +26,10 @@ const items: CommandItem[] = [
   { label: 'AI Assistant', description: 'Ask the assistant', to: routes.ai },
   { label: 'AI Decisions', description: 'Recommended business actions', to: routes.decisions },
   { label: 'AI Tools', description: 'Recommendations and vision utilities', to: routes.aiTools },
-  { label: 'Store Profile', description: 'Business settings', to: routes.settings },
+  { label: 'Store Profile', description: 'Business settings', to: routes.settingsProfile },
+  { label: 'Categories', description: 'Category management', to: routes.settingsCategories },
+  { label: 'Tax Config', description: 'GST mappings', to: routes.settingsTax },
+  { label: 'Security / MFA', description: 'Password and MFA', to: routes.settingsSecurity },
 ];
 
 const recentKey = 'retailiq-command-recent';

@@ -24,8 +24,10 @@ const titleMap: Record<string, string> = {
   [routes.financeLedger]: 'Ledger',
   [routes.financeTreasury]: 'Treasury',
   [routes.financeLoans]: 'Loans',
-  [routes.security]: 'Security / MFA',
-  [routes.settings]: 'Store Profile',
+  [routes.settingsSecurity]: 'Security / MFA',
+  [routes.settingsProfile]: 'Store Profile',
+  [routes.settingsCategories]: 'Categories',
+  [routes.settingsTax]: 'Tax Config',
   [routes.pricing]: 'Pricing',
   [routes.decisions]: 'AI Decisions',
   [routes.kyc]: 'KYC',
@@ -74,6 +76,10 @@ export function Header({ onOpenPalette, onMenuClick, storeName }: HeaderProps) {
     if (pathname.startsWith('/dashboard/reports')) return 'Reports';
     if (pathname.startsWith('/orders/pos')) return 'Point of sale';
     if (pathname.startsWith('/orders/transactions')) return 'Transactions';
+    if (pathname.startsWith('/settings/categories')) return 'Categories';
+    if (pathname.startsWith('/settings/tax')) return 'Tax Config';
+    if (pathname.startsWith('/settings/security')) return 'Security / MFA';
+    if (pathname.startsWith('/settings')) return 'Store Profile';
     if (pathname.startsWith('/store')) return 'Store Profile';
     if (pathname.startsWith('/inventory')) return 'Inventory';
     if (pathname.startsWith('/purchase-orders')) return 'Purchase Orders';
@@ -116,6 +122,10 @@ export function Header({ onOpenPalette, onMenuClick, storeName }: HeaderProps) {
     if (pathname.startsWith('/finance/treasury')) return ['Financials', 'Treasury'];
     if (pathname.startsWith('/finance/loans')) return ['Financials', 'Loans'];
     if (pathname.startsWith('/finance')) return ['Financials'];
+    if (pathname.startsWith('/settings/categories')) return ['Settings', 'Categories'];
+    if (pathname.startsWith('/settings/tax')) return ['Settings', 'Tax Config'];
+    if (pathname.startsWith('/settings/security')) return ['Settings', 'Security / MFA'];
+    if (pathname.startsWith('/settings')) return ['Settings', 'Store Profile'];
     if (pathname.startsWith('/ai/decisions')) return ['AI Assistant', 'AI Decisions'];
     if (pathname.startsWith('/ai/tools')) return ['AI Assistant', 'AI Tools'];
     if (pathname.startsWith('/ai')) return ['AI Assistant'];

@@ -12,10 +12,18 @@ import SecurityPage from '@/pages/Security';
 
 const mocks = vi.hoisted(() => ({
   loginMutateAsync: vi.fn(),
+  forgotPasswordMutateAsync: vi.fn(),
+  resetPasswordMutateAsync: vi.fn(),
+  mfaSetupMutateAsync: vi.fn(),
+  mfaVerifyMutateAsync: vi.fn(),
 }));
 
 vi.mock('@/hooks/auth', () => ({
   useLoginMutation: () => ({ mutateAsync: mocks.loginMutateAsync, isPending: false }),
+  useForgotPasswordMutation: () => ({ mutateAsync: mocks.forgotPasswordMutateAsync, isPending: false }),
+  useResetPasswordMutation: () => ({ mutateAsync: mocks.resetPasswordMutateAsync, isPending: false }),
+  useMfaSetupMutation: () => ({ mutateAsync: mocks.mfaSetupMutateAsync, isPending: false }),
+  useMfaVerifyMutation: () => ({ mutateAsync: mocks.mfaVerifyMutateAsync, isPending: false }),
 }));
 
 describe('Prompt 00 step 9 shell verification', () => {
@@ -117,6 +125,20 @@ describe('Prompt 00 step 9 shell verification', () => {
   });
 
   it('renders representative route stubs without crashing', () => {
+    authStore.setState({
+      accessToken: 'token',
+      refreshToken: 'refresh',
+      user: {
+        user_id: 1,
+        role: 'owner',
+        store_id: 1,
+        mobile_number: '9999999999',
+        full_name: 'Owner User',
+      },
+      isAuthenticated: true,
+      role: 'owner',
+    });
+
     const routeEntries = [
       { path: '/ai-assistant/tools', element: <AiToolsPage />, title: 'AI Tools' },
       { path: '/security', element: <SecurityPage />, title: 'Security / MFA' },
