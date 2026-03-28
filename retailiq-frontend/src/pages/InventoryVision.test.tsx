@@ -211,7 +211,7 @@ describe('InventoryVisionPage', () => {
     await user.click(within(dialog).getByRole('button', { name: /confirm items/i }));
 
     expect(confirmMutateAsync).toHaveBeenCalledWith({
-      jobId: 'job-501',
+      jobId: 'job-1',
       payload: {
         confirmed_items: [
           {
@@ -237,6 +237,6 @@ describe('InventoryVisionPage', () => {
     await user.type(within(dialog).getByLabelText(/type dismiss to confirm/i), 'DISMISS');
     await user.click(within(dialog).getByRole('button', { name: /dismiss job/i }));
 
-    expect(dismissMutateAsync).toHaveBeenCalledWith('job-501');
+    expect(dismissMutateAsync).toHaveBeenCalledWith('job-1');
   });
 });

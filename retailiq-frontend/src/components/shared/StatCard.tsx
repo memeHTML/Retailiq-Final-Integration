@@ -6,9 +6,10 @@ export interface StatCardProps {
   value: string | number;
   icon?: ReactNode;
   helperText?: string;
+  description?: string;
 }
 
-export function StatCard({ label, value, icon, helperText }: StatCardProps) {
+export function StatCard({ label, value, icon, helperText, description }: StatCardProps) {
   return (
     <Card>
       <CardContent className="space-y-2">
@@ -17,7 +18,7 @@ export function StatCard({ label, value, icon, helperText }: StatCardProps) {
           {icon ? <div>{icon}</div> : null}
         </div>
         <div className="text-2xl font-semibold">{value}</div>
-        {helperText ? <div className="text-sm text-muted-foreground">{helperText}</div> : null}
+        {helperText || description ? <div className="text-sm text-muted-foreground">{helperText ?? description}</div> : null}
       </CardContent>
     </Card>
   );

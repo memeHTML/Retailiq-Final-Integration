@@ -15,9 +15,9 @@ import {
   Megaphone,
   ReceiptText,
   RotateCcw,
+  ScanLine,
   ShieldCheck,
   ShoppingCart,
-  ScanLine,
   Sparkles,
   Store,
   Users,
@@ -55,10 +55,10 @@ const shellNavGroups: ShellNavGroup[] = [
   {
     title: 'Orders',
     items: [
-      { label: 'Orders', description: 'Orders hub overview', to: routes.orders, icon: ShoppingCart },
+      { label: 'Orders Hub', description: 'Orders hub overview', to: routes.orders, icon: ShoppingCart },
       { label: 'Omnichannel', description: 'Marketplace and WhatsApp hub', to: routes.omnichannel, icon: Megaphone },
-      { label: 'POS / New Sale', description: 'Create a new sale', to: routes.pos, icon: ShoppingCart },
-      { label: 'Transactions', description: 'Sales history and returns', to: routes.transactions, icon: FileText },
+      { label: 'POS / New Sale', description: 'Create a new sale', to: routes.ordersPos, icon: ShoppingCart },
+      { label: 'Transactions', description: 'Sales history and returns', to: routes.ordersTransactions, icon: FileText },
       { label: 'Returns', description: 'Return and refund operations', to: routes.returns, icon: RotateCcw },
       { label: 'Purchase Orders', description: 'Drafts, receiving, and PDF export', to: routes.purchaseOrders, icon: FolderKanban },
       { label: 'Suppliers', description: 'Supplier records and links', to: routes.suppliers, icon: Store },
@@ -70,7 +70,8 @@ const shellNavGroups: ShellNavGroup[] = [
     items: [
       { label: 'Products', description: 'Product catalogue and inventory levels', to: routes.inventory, icon: Boxes },
       { label: 'Stock Audit', description: 'Counted stock reconciliation', to: routes.stockAudit, icon: ShieldCheck },
-      { label: 'Receipts', description: 'Receipt templates and print jobs', to: routes.inventoryReceipts, icon: ReceiptText },
+      { label: 'Inventory Sync', description: 'Offline snapshot and batch sync', to: routes.inventorySync, icon: RotateCcw },
+      { label: 'Receipts & Barcodes', description: 'Receipt templates and print jobs', to: routes.inventoryReceipts, icon: ReceiptText },
       { label: 'Barcodes', description: 'Barcode lookup and registration', to: routes.inventoryBarcodes, icon: Barcode },
       { label: 'Vision OCR', description: 'OCR upload and review', to: routes.inventoryVision, icon: ScanLine },
       { label: 'Pricing', description: 'Pricing suggestions and rules', to: routes.pricing, icon: CircleDollarSign, ownerOnly: true },
@@ -100,8 +101,21 @@ const shellNavGroups: ShellNavGroup[] = [
     title: 'Financials',
     items: [
       { label: 'Finance Dashboard', description: 'Owner finance overview', to: routes.finance, icon: CircleDollarSign, ownerOnly: true },
+      { label: 'Accounts', description: 'Financial account list', to: routes.financeAccounts, icon: Building2, ownerOnly: true },
+      { label: 'Credit Score', description: 'Merchant credit score', to: routes.financeCreditScore, icon: ShieldCheck, ownerOnly: true },
+      { label: 'Finance KYC', description: 'Compliance status', to: routes.financeKyc, icon: ShieldCheck, ownerOnly: true },
+      { label: 'Ledger', description: 'Ledger entries and balances', to: routes.financeLedger, icon: FileText, ownerOnly: true },
+      { label: 'Treasury', description: 'Treasury config and transfers', to: routes.financeTreasury, icon: Store, ownerOnly: true },
+      { label: 'Loans', description: 'Loan products and applications', to: routes.financeLoans, icon: FolderKanban, ownerOnly: true },
       { label: 'GST / Tax', description: 'Tax configuration and filings', to: routes.financeGst, icon: FileText, ownerOnly: true },
       { label: 'E-Invoicing', description: 'Invoice compliance and status', to: routes.financeEinvoice, icon: ReceiptText, ownerOnly: true },
+    ],
+  },
+  {
+    title: 'AI Assistant',
+    items: [
+      { label: 'Chat', description: 'Ask the assistant', to: routes.ai, icon: LayoutDashboard },
+      { label: 'AI Tools', description: 'Forecasting, vision, and recommendations', to: routes.aiTools, icon: BrainCircuit },
     ],
   },
   {
@@ -118,19 +132,31 @@ const shellNavGroups: ShellNavGroup[] = [
   {
     title: 'Settings',
     items: [
-      { label: 'Store Profile', description: 'Business profile and store details', to: routes.storeProfile, icon: Store, ownerOnly: true },
-      { label: 'Store Categories', description: 'Category management', to: routes.storeCategories, icon: Boxes, ownerOnly: true },
-      { label: 'Tax Config', description: 'Store tax rules', to: routes.storeTaxConfig, icon: FileText, ownerOnly: true },
-      { label: 'Internationalization', description: 'Translations, currencies, and countries', to: routes.settingsI18n, icon: Globe2 },
+      { label: 'Store Profile', description: 'Business profile and store details', to: routes.settingsProfile, icon: Store, ownerOnly: true },
+      { label: 'Store Categories', description: 'Category management', to: routes.settingsCategories, icon: Boxes, ownerOnly: true },
+      { label: 'Tax Config', description: 'Store tax rules', to: routes.settingsTax, icon: FileText, ownerOnly: true },
+      { label: 'Security / MFA', description: 'Password and authenticator settings', to: routes.settingsSecurity, icon: ShieldCheck },
+      { label: 'Language / i18n', description: 'Internationalization, translations, currencies, and countries', to: routes.settingsI18n, icon: Globe2 },
     ],
   },
 ];
 
 const titleMatchers: Array<{ pattern: string; title: string }> = [
+  { pattern: routes.dashboardAlerts, title: 'Smart Alerts' },
+  { pattern: routes.dashboardCalendar, title: 'Financial Calendar' },
+  { pattern: routes.dashboardReports, title: 'Reports' },
+  { pattern: routes.ordersPos, title: 'Point of sale' },
+  { pattern: routes.ordersTransactions, title: 'Transactions' },
+  { pattern: routes.orderTransactionDetail, title: 'Transactions' },
+  { pattern: routes.settingsProfile, title: 'Store Profile' },
+  { pattern: routes.settingsCategories, title: 'Store Categories' },
+  { pattern: routes.settingsTax, title: 'Tax Config' },
+  { pattern: routes.settingsSecurity, title: 'Security / MFA' },
+  { pattern: routes.settingsI18n, title: 'Internationalization' },
   { pattern: routes.storeCategories, title: 'Store Categories' },
   { pattern: routes.storeTaxConfig, title: 'Tax Config' },
   { pattern: routes.storeProfile, title: 'Store Profile' },
-  { pattern: routes.settingsI18n, title: 'Internationalization' },
+  { pattern: routes.inventorySync, title: 'Inventory Sync' },
   { pattern: routes.inventoryVisionReview, title: 'Vision OCR' },
   { pattern: routes.inventoryVision, title: 'Vision OCR' },
   { pattern: routes.inventoryBarcodes, title: 'Barcodes' },
@@ -147,14 +173,26 @@ const titleMatchers: Array<{ pattern: string; title: string }> = [
   { pattern: routes.chain, title: 'Chain Management' },
   { pattern: routes.transactions, title: 'Transactions' },
   { pattern: routes.returns, title: 'Returns' },
+  { pattern: routes.customersAnalytics, title: 'Customer Analytics' },
   { pattern: routes.customers, title: 'Customers' },
   { pattern: routes.staffDetail, title: 'Staff Performance' },
   { pattern: routes.staff, title: 'Staff Performance' },
+  { pattern: routes.analyticsStaff, title: 'Staff Performance' },
+  { pattern: routes.analyticsForecasting, title: 'Forecasting' },
   { pattern: routes.analyticsMarket, title: 'Market Intelligence' },
   { pattern: routes.marketIntelligence, title: 'Market Intelligence' },
+  { pattern: routes.offline, title: 'Offline Data' },
+  { pattern: routes.analyticsOffline, title: 'Offline Data' },
+  { pattern: routes.financeAccounts, title: 'Accounts' },
+  { pattern: routes.financeCreditScore, title: 'Credit Score' },
+  { pattern: routes.financeKyc, title: 'Finance KYC' },
+  { pattern: routes.financeLedger, title: 'Ledger' },
+  { pattern: routes.financeTreasury, title: 'Treasury' },
+  { pattern: routes.financeLoans, title: 'Loans' },
   { pattern: routes.financeEinvoice, title: 'E-Invoicing' },
   { pattern: routes.financeGst, title: 'GST / Tax' },
   { pattern: routes.finance, title: 'Financials' },
+  { pattern: routes.aiTools, title: 'AI Tools' },
   { pattern: routes.aiDecisions, title: 'Decisions' },
   { pattern: routes.decisions, title: 'Decisions' },
   { pattern: routes.pricing, title: 'Pricing' },
@@ -168,13 +206,33 @@ const titleMatchers: Array<{ pattern: string; title: string }> = [
   { pattern: routes.reports, title: 'Reports' },
   { pattern: routes.financialCalendar, title: 'Financial Calendar' },
   { pattern: routes.dashboard, title: 'Dashboard' },
-  { pattern: routes.pos, title: 'POS' },
+  { pattern: routes.pos, title: 'POS / New Sale' },
   { pattern: routes.offline, title: 'Offline Data' },
   { pattern: routes.analytics, title: 'Analytics' },
   { pattern: routes.ai, title: 'AI Assistant' },
+  { pattern: routes.legacyAiAssistant, title: 'AI Assistant' },
+  { pattern: routes.legacyAiTools, title: 'AI Tools' },
+  { pattern: routes.legacyDecisions, title: 'Decisions' },
 ];
 
 const aliasToCanonicalPath: Record<string, string> = {
+  [routes.dashboardAlerts]: routes.smartAlerts,
+  [routes.dashboardCalendar]: routes.financialCalendar,
+  [routes.dashboardReports]: routes.reports,
+  [routes.pos]: routes.ordersPos,
+  [routes.transactions]: routes.ordersTransactions,
+  [routes.transactionDetail]: routes.orderTransactionDetail,
+  [routes.storeProfile]: routes.settingsProfile,
+  [routes.storeCategories]: routes.settingsCategories,
+  [routes.storeTaxConfig]: routes.settingsTax,
+  [routes.legacySecurity]: routes.settingsSecurity,
+  [routes.analyticsForecasting]: routes.forecasting,
+  [routes.analyticsOffline]: routes.offline,
+  [routes.analyticsMarket]: routes.marketIntelligence,
+  [routes.inventorySync]: routes.inventorySync,
+  [routes.legacyAiAssistant]: routes.ai,
+  [routes.legacyAiTools]: routes.aiTools,
+  [routes.legacyDecisions]: routes.decisions,
   [routes.developerLegacy]: routes.developer,
   [routes.kycLegacy]: routes.kyc,
   [routes.teamLegacy]: routes.team,
@@ -184,11 +242,11 @@ const aliasToCanonicalPath: Record<string, string> = {
   [routes.analyticsStaff]: routes.staff,
   [routes.inventoryPricing]: routes.pricing,
   [routes.aiDecisions]: routes.decisions,
-  [routes.analyticsMarket]: routes.marketIntelligence,
   [routes.marketplaceLegacy]: routes.marketplace,
   [routes.chainLegacy]: routes.chain,
   [routes.gst]: routes.financeGst,
   [routes.einvoice]: routes.financeEinvoice,
+  [routes.security]: routes.settingsSecurity,
 };
 
 const normalizePath = (pathname: string) => {
@@ -225,7 +283,9 @@ const matchesPattern = (pathname: string, pattern: string) => {
   });
 };
 
-const rankedTitleMatchers = [...titleMatchers].sort((left, right) => right.pattern.split('/').filter(Boolean).length - left.pattern.split('/').filter(Boolean).length);
+const rankedTitleMatchers = [...titleMatchers].sort(
+  (left, right) => right.pattern.split('/').filter(Boolean).length - left.pattern.split('/').filter(Boolean).length,
+);
 
 export function canonicalizePathname(pathname: string) {
   const normalized = normalizePath(pathname);
@@ -263,7 +323,7 @@ export function flattenedNavItems(role: ShellRole) {
 
 export function primaryMobileNavItems(role: ShellRole) {
   const items = flattenedNavItems(role);
-  const primaryPaths = [routes.dashboard, routes.orders, routes.inventory, routes.pos, routes.customers, routes.analytics];
+  const primaryPaths = [routes.dashboard, routes.orders, routes.inventory, routes.ordersPos, routes.customers, routes.analytics];
 
   return primaryPaths
     .map((path) => items.find((item) => item.to === path))

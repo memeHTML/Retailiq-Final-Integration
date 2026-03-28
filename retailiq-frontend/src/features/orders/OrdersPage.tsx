@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { useDailySummaryQuery, useTransactionsQuery } from '@/hooks/transactions';
 import { usePurchaseOrders } from '@/hooks/purchaseOrders';
 import { useMarketplaceOrdersQuery, useMarketplaceRecommendationsQuery } from '@/hooks/marketplace';
+import { routes } from '@/routes/routes';
 import { formatDate } from '@/utils/dates';
 import { formatCurrency } from '@/utils/numbers';
 import type { ListMarketplaceOrdersResponse, MarketplaceRecommendation } from '@/types/api';
@@ -64,9 +65,9 @@ export default function OrdersPage() {
 
   return (
     <PageFrame
-      title="Orders"
+      title="Orders Hub"
       subtitle="A unified hub for sales, purchase orders, and marketplace activity."
-      actions={<Link className="button button--secondary" to="/purchase-orders">Open Purchase Orders</Link>}
+      actions={<Link className="button button--secondary" to={routes.purchaseOrders}>Open Purchase Orders</Link>}
     >
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -167,7 +168,7 @@ export default function OrdersPage() {
                   <h2 className="text-lg font-semibold">Purchase Orders</h2>
                   <p className="text-sm text-gray-500">Preview purchase orders from the contract-backed list endpoint.</p>
                 </div>
-                <Link className="button" to="/purchase-orders">Open full purchase-order page</Link>
+                <Link className="button" to={routes.purchaseOrders}>Open full purchase-order page</Link>
               </div>
               {purchaseOrdersQuery.isError ? (
                 <EmptyState title="Purchase orders unavailable" body="The purchase-order list could not be loaded from the backend." />
@@ -220,7 +221,7 @@ export default function OrdersPage() {
               </div>
 
               <div className="button-row">
-                <Link className="button button--secondary" to="/orders/marketplace">Open marketplace page</Link>
+                <Link className="button button--secondary" to={routes.marketplace}>Open marketplace page</Link>
                 <Link className="button button--secondary" to="/suppliers">View suppliers</Link>
               </div>
             </div>

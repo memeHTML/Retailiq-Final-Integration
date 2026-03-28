@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { analyticsApi } from '@/api/analytics';
 import * as customersApi from '@/api/customers';
 import type {
   CreateCustomerRequest,
@@ -25,6 +26,13 @@ export const useTopCustomersQuery = (params: TopCustomersRequest = {}) =>
 
 export const useCustomerAnalyticsQuery = () =>
   useQuery({ queryKey: ['customers', 'analytics'], queryFn: () => customersApi.getCustomerAnalytics(), staleTime: 120_000 });
+
+export const useCustomerSummaryAnalyticsQuery = () =>
+  useQuery({
+    queryKey: ['customers', 'analytics', 'summary'],
+    queryFn: () => analyticsApi.getCustomerSummaryAnalytics(),
+    staleTime: 120_000,
+  });
 
 export const useCreateCustomerMutation = () => {
   const qc = useQueryClient();

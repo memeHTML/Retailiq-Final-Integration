@@ -186,6 +186,26 @@ const extractTimestamp = (payload: unknown) => {
   return undefined;
 };
 
+const serializeAxiosError = (error: AxiosError): unknown => {
+  if (typeof error.toJSON === 'function') {
+    try {
+      return error.toJSON();
+    } catch {
+      return {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+      };
+    }
+  }
+
+  return {
+    message: error.message,
+    name: error.name,
+    stack: error.stack,
+  };
+};
+
 export function normalizeApiError(error: unknown): ApiError {
   if (isAxiosError(error)) {
     const axiosError = error as AxiosError<Record<string, unknown>>;
@@ -202,7 +222,7 @@ export function normalizeApiError(error: unknown): ApiError {
       correlationId: correlationId ? String(correlationId) : undefined,
       timestamp: extractTimestamp(payload),
       details: payload,
-      raw: payload ?? axiosError.toJSON(),
+      raw: payload ?? serializeAxiosError(axiosError),
     };
   }
 

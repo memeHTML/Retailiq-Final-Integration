@@ -6,13 +6,15 @@ import { DataTable } from '@/components/ui/DataTable';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { analyticsApi } from '@/api/analytics';
+import { routes } from '@/routes/routes';
 import { normalizeApiError } from '@/utils/errors';
 import { formatCurrency } from '@/utils/numbers';
+import type { AnalyticsCategoryBreakdown, AnalyticsDashboardSnapshot, AnalyticsPaymentModeBreakdown, AnalyticsTopProduct } from '@/types/analytics';
 
 export default function AnalyticsPage() {
   const dashboardQuery = useQuery({
     queryKey: ['analytics', 'dashboard'],
-    queryFn: () => analyticsApi.getDashboardSnapshot(),
+    queryFn: () => analyticsApi.getAnalyticsDashboard(),
     staleTime: 60_000,
   });
 
@@ -80,12 +82,12 @@ export default function AnalyticsPage() {
     );
   }
 
-  const dashboard = dashboardQuery.data;
+  const dashboard = dashboardQuery.data as AnalyticsDashboardSnapshot | undefined;
   const profit = profitQuery.data;
   const revenue = revenueQuery.data;
-  const topProducts = topProductsQuery.data ?? [];
-  const categoryBreakdown = categoryQuery.data ?? [];
-  const paymentModes = paymentModesQuery.data ?? [];
+  const topProducts = (topProductsQuery.data ?? []) as AnalyticsTopProduct[];
+  const categoryBreakdown = (categoryQuery.data ?? []) as AnalyticsCategoryBreakdown[];
+  const paymentModes = (paymentModesQuery.data ?? []) as AnalyticsPaymentModeBreakdown[];
 
   const todayKpis = dashboard?.today_kpis;
   const insights = dashboard?.insights ?? [];
@@ -177,7 +179,7 @@ export default function AnalyticsPage() {
               <div className="text-sm uppercase tracking-wide text-gray-500">More Analytics</div>
               <div className="text-lg font-semibold">Staff Performance</div>
               <p className="text-sm text-gray-500">Track team revenue, targets, and daily performance trends.</p>
-              <Link className="button button--secondary" to="/staff-performance">Open staff performance</Link>
+              <Link className="button button--secondary" to={routes.staff}>Open staff performance</Link>
             </CardContent>
           </Card>
           <Card className="transition-shadow hover:shadow-md">
@@ -185,7 +187,7 @@ export default function AnalyticsPage() {
               <div className="text-sm uppercase tracking-wide text-gray-500">More Analytics</div>
               <div className="text-lg font-semibold">Market Intelligence</div>
               <p className="text-sm text-gray-500">Review market signals, competitors, and pricing recommendations.</p>
-              <Link className="button button--secondary" to="/market-intelligence">Open market intelligence</Link>
+              <Link className="button button--secondary" to={routes.marketIntelligence}>Open market intelligence</Link>
             </CardContent>
           </Card>
           <Card className="transition-shadow hover:shadow-md">
@@ -193,7 +195,7 @@ export default function AnalyticsPage() {
               <div className="text-sm uppercase tracking-wide text-gray-500">More Analytics</div>
               <div className="text-lg font-semibold">Offline Data</div>
               <p className="text-sm text-gray-500">Inspect local snapshots and sync health for disconnected workflows.</p>
-              <Link className="button button--secondary" to="/offline">Open offline data</Link>
+              <Link className="button button--secondary" to={routes.offline}>Open offline data</Link>
             </CardContent>
           </Card>
         </div>
@@ -225,8 +227,8 @@ export default function AnalyticsPage() {
                 columns={[
                   { key: 'name', header: 'Product', render: (row) => row.name },
                   { key: 'sku_code', header: 'SKU', render: (row) => row.sku_code || '-' },
-                  { key: 'total_sold', header: 'Units Sold', render: (row) => row.total_sold.toLocaleString() },
-                  { key: 'revenue', header: 'Revenue', render: (row) => formatCurrency(row.revenue) },
+                  { key: 'total_sold', header: 'Units Sold', render: (row) => Number(row.total_sold ?? row.quantity ?? 0).toLocaleString() },
+                  { key: 'revenue', header: 'Revenue', render: (row) => formatCurrency(Number(row.revenue ?? 0)) },
                 ]}
                 data={topProducts}
                 emptyMessage="No top-product data available for the selected range."
@@ -246,7 +248,7 @@ export default function AnalyticsPage() {
                   { key: 'name', header: 'Category', render: (row) => row.name },
                   { key: 'revenue', header: 'Revenue', render: (row) => formatCurrency(row.revenue) },
                   { key: 'profit', header: 'Profit', render: (row) => formatCurrency(row.profit) },
-                  { key: 'percentage', header: 'Share', render: (row) => `${row.percentage.toFixed(2)}%` },
+                  { key: 'percentage', header: 'Share', render: (row) => `${Number(row.percentage ?? row.share_pct ?? 0).toFixed(2)}%` },
                 ]}
                 data={categoryBreakdown}
                 emptyMessage="No category revenue breakdown was returned."
@@ -261,10 +263,10 @@ export default function AnalyticsPage() {
             <CardContent>
               <DataTable
                 columns={[
-                  { key: 'payment_mode', header: 'Payment Mode', render: (row) => row.payment_mode },
-                  { key: 'count', header: 'Orders', render: (row) => row.count.toLocaleString() },
-                  { key: 'amount', header: 'Revenue', render: (row) => formatCurrency(row.amount) },
-                  { key: 'percentage', header: 'Share', render: (row) => `${row.percentage.toFixed(2)}%` },
+                  { key: 'payment_mode', header: 'Payment Mode', render: (row) => row.payment_mode ?? row.mode },
+                  { key: 'count', header: 'Orders', render: (row) => Number(row.count ?? row.txn_count ?? 0).toLocaleString() },
+                  { key: 'amount', header: 'Revenue', render: (row) => formatCurrency(Number(row.amount ?? row.revenue ?? 0)) },
+                  { key: 'percentage', header: 'Share', render: (row) => `${Number(row.percentage ?? row.txn_share_pct ?? 0).toFixed(2)}%` },
                 ]}
                 data={paymentModes}
                 emptyMessage="No payment-mode data was returned."

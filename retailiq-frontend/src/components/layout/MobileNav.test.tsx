@@ -22,15 +22,18 @@ vi.mock('@/stores/authStore', () => ({
 }));
 
 describe('MobileNav', () => {
-  it('renders the navigation drawer when opened', () => {
+  it('renders the primary bottom navigation', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <MobileNav />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Navigation')).toBeTruthy();
-    expect(screen.getByText('Dashboard')).toBeTruthy();
-    expect(screen.getByText('Stock Audit')).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: /primary/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /home/i }).getAttribute('href')).toBe('/dashboard');
+    expect(screen.getByRole('link', { name: /inventory/i }).getAttribute('href')).toBe('/inventory');
+    expect(screen.getByRole('link', { name: /^pos$/i }).getAttribute('href')).toBe('/orders/pos');
+    expect(screen.getByRole('link', { name: /customers/i }).getAttribute('href')).toBe('/customers');
+    expect(screen.getByRole('link', { name: /analytics/i }).getAttribute('href')).toBe('/analytics');
   });
 });

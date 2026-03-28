@@ -11,9 +11,12 @@ import { routes } from '@/routes/routes';
 
 interface HeaderProps {
   onOpenPalette: () => void;
+  onMenuClick?: () => void;
+  isNavigationOpen?: boolean;
+  storeName?: string;
 }
 
-export function Header({ onOpenPalette }: HeaderProps) {
+export function Header({ onOpenPalette, onMenuClick, isNavigationOpen, storeName }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const user = authStore((state) => state.user);
@@ -31,6 +34,8 @@ export function Header({ onOpenPalette }: HeaderProps) {
 
   const title = useMemo(() => resolvePageTitle(location.pathname), [location.pathname]);
   const breadcrumbs = useMemo(() => resolveBreadcrumbs(location.pathname), [location.pathname]);
+  const handleMenuClick = onMenuClick ?? toggleMobileNav;
+  const navigationOpen = isNavigationOpen ?? mobileNavOpen;
 
   const handleLogout = () => {
     authStore.getState().clearAuth();
@@ -43,9 +48,9 @@ export function Header({ onOpenPalette }: HeaderProps) {
         <button
           className="header__menu"
           type="button"
-          aria-label="Open navigation"
-          aria-expanded={mobileNavOpen}
-          onClick={toggleMobileNav}
+          aria-label="Toggle navigation"
+          aria-expanded={navigationOpen}
+          onClick={handleMenuClick}
         >
           <Menu size={18} />
         </button>
@@ -62,7 +67,7 @@ export function Header({ onOpenPalette }: HeaderProps) {
             ))}
           </nav>
           <h1>{title}</h1>
-          <div className="header__store">{storeProfileQuery.data?.store_name ?? user?.mobile_number ?? 'RetailIQ'}</div>
+          <div className="header__store">{storeProfileQuery.data?.store_name ?? storeName ?? user?.mobile_number ?? 'RetailIQ'}</div>
         </div>
       </div>
 
@@ -91,11 +96,11 @@ export function Header({ onOpenPalette }: HeaderProps) {
             <DropdownMenuLabel>
               <div className="space-y-1">
                 <div>{user?.full_name ?? 'Retail user'}</div>
-                <div className="text-xs font-normal text-text-muted">{storeProfileQuery.data?.store_name ?? 'RetailIQ'}</div>
+                <div className="text-xs font-normal text-text-muted">{storeProfileQuery.data?.store_name ?? storeName ?? 'RetailIQ'}</div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate(routes.storeProfile)}>Store profile</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate(routes.settingsProfile)}>Store profile</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => navigate(routes.dashboard)}>Dashboard</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleLogout}>Log out</DropdownMenuItem>

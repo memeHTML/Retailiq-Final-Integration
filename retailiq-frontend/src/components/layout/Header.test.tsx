@@ -75,10 +75,10 @@ describe('Header', () => {
     render(<Header onOpenPalette={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeTruthy();
-    expect(screen.getByText('RetailIQ')).toBeTruthy();
+    expect(screen.getByText('Demo Store')).toBeTruthy();
     expect(screen.getByText('Ada Lovelace')).toBeTruthy();
 
-    await user.click(screen.getByRole('button', { name: /open navigation/i }));
+    await user.click(screen.getByRole('button', { name: /toggle navigation/i }));
     expect(toggleMobileNavMock).toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: /open user menu/i }));

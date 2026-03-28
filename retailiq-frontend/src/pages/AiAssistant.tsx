@@ -43,55 +43,61 @@ export default function AiAssistantPage() {
     { label: 'Loyalty', query: 'Show loyalty program summary' },
   ];
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!queryText.trim()) return;
     const userMsg: ChatMessage = { role: 'user', text: queryText };
     setMessages((prev) => [...prev, userMsg]);
     const q = queryText;
     setQueryText('');
 
-    nlpMutation.mutate({ query_text: q }, {
-      onSuccess: (data) => {
+    try {
+      const data = await aiMutation.mutateAsync({ query: q });
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: data.response || 'No response.',
+      }]);
+    } catch {
+      try {
+        const data = await nlpMutation.mutateAsync({ query_text: q });
         const nlpData = data as NlpResponse;
         setMessages((prev) => [...prev, {
           role: 'assistant',
           text: nlpData.detail || nlpData.headline || 'No response.',
           nlpData,
         }]);
-      },
-      onError: () => {
-        aiMutation.mutate({ query: q }, {
-          onSuccess: (data) => {
-            setMessages((prev) => [...prev, { role: 'assistant', text: data.response }]);
-          },
-          onError: (err) => {
-            setMessages((prev) => [...prev, { role: 'assistant', text: `Error: ${normalizeApiError(err).message}` }]);
-          },
-        });
-      },
-    });
+      } catch (err) {
+        setMessages((prev) => [...prev, { role: 'assistant', text: `Error: ${normalizeApiError(err).message}` }]);
+      }
+    }
   };
 
-  const handleGetRecommendations = () => {
-    recMutation.mutate({}, {
-      onSuccess: (data) => setRecommendations(data.recommendations ?? []),
-    });
+  const handleGetRecommendations = async () => {
+    try {
+      const data = await recMutation.mutateAsync({});
+      setRecommendations(data.recommendations ?? []);
+    } catch {
+      setRecommendations([]);
+    }
   };
 
-  const handleSendV2 = () => {
+  const handleSendV2 = async () => {
     if (!queryText.trim()) return;
     const q = queryText.trim();
-    v2QueryMutation.mutate({ query: q }, {
-      onSuccess: (data) => {
-        setV2Response(data.response || 'No response.');
-      },
-    });
+    try {
+      const data = await v2QueryMutation.mutateAsync({ query: q });
+      setV2Response(data.response || 'No response.');
+    } catch (error) {
+      setV2Response(`Error: ${normalizeApiError(error).message}`);
+    }
   };
 
-  const handleGetV2Recommendations = () => {
-    v2RecMutation.mutate({}, {
-      onSuccess: (data) => setV2Recommendations(data.recommendations ?? []),
-    });
+  const handleGetV2Recommendations = async () => {
+    try {
+      const data = await v2RecMutation.mutateAsync({});
+      setV2Recommendations(data.recommendations ?? []);
+    } catch {
+      setV2Recommendations([]);
+    }
   };
 
   const handleShelfScan = () => {
@@ -102,14 +108,13 @@ export default function AiAssistantPage() {
     }
 
     setVisionMessage('');
-    shelfScanMutation.mutate({ image_url: imageUrl }, {
-      onSuccess: () => {
+    shelfScanMutation.mutateAsync({ image_url: imageUrl })
+      .then(() => {
         setVisionMessage('Shelf-scan request submitted to the backend.');
-      },
-      onError: (error) => {
+      })
+      .catch((error) => {
         setVisionMessage(normalizeApiError(error).message);
-      },
-    });
+      });
   };
 
   const handleReceiptDigitize = () => {
@@ -120,14 +125,13 @@ export default function AiAssistantPage() {
     }
 
     setVisionMessage('');
-    receiptDigitizeMutation.mutate({ image_url: imageUrl }, {
-      onSuccess: () => {
+    receiptDigitizeMutation.mutateAsync({ image_url: imageUrl })
+      .then(() => {
         setVisionMessage('Receipt digitization request submitted to the backend.');
-      },
-      onError: (error) => {
+      })
+      .catch((error) => {
         setVisionMessage(normalizeApiError(error).message);
-      },
-    });
+      });
   };
 
   return (
@@ -148,7 +152,7 @@ export default function AiAssistantPage() {
           <Card className="mb-4">
             <CardContent>
               <div style={{ maxHeight: 400, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 200 }}>
-                {messages.length === 0 && <p className="muted">Ask a question to get started...</p>}
+                {messages.length === 0 && <p className="muted">Start a conversation to explore your store.</p>}
                 {messages.map((msg, i) => (
                   <div key={i} style={{ textAlign: msg.role === 'user' ? 'right' : 'left' }}>
                     <div style={{
@@ -176,6 +180,7 @@ export default function AiAssistantPage() {
           {/* Input */}
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <Input
+              label="Ask RetailIQ"
               placeholder="Ask about revenue, inventory, forecast, loyalty..."
               value={queryText}
               onChange={(e) => setQueryText(e.target.value)}

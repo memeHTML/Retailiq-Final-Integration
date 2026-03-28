@@ -7,12 +7,13 @@ interface SkeletonLoaderProps {
   width?: string | number;
   height?: string | number;
   variant?: 'text' | 'rect' | 'circle';
+  className?: string;
 }
 
-export function SkeletonLoader({ width = '100%', height = '1rem', variant = 'text' }: SkeletonLoaderProps) {
+export function SkeletonLoader({ width = '100%', height = '1rem', variant = 'text', className = '' }: SkeletonLoaderProps) {
   return (
     <div
-      className={`skeleton skeleton--${variant}`}
+      className={`skeleton skeleton--${variant} ${className}`.trim()}
       aria-hidden="true"
       style={{ width, height }}
     />

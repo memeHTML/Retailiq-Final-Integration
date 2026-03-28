@@ -28,6 +28,10 @@ export const financeKeys = {
   dashboard: () => [...financeKeys.all, 'dashboard'] as const,
 };
 
+const invalidateFinanceViews = async (queryClient: ReturnType<typeof useQueryClient>, keys: Array<readonly unknown[]>) => {
+  await Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
+};
+
 // KYC
 export const useKYCQuery = () => {
   return useQuery({
@@ -43,7 +47,7 @@ export const useSubmitKYCMutation = () => {
   return useMutation({
     mutationFn: (data: KYCSubmission) => financeApi.financeApi.submitKYC(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: financeKeys.kyc() });
+      void invalidateFinanceViews(queryClient, [financeKeys.kyc(), financeKeys.dashboard()]);
     },
   });
 };
@@ -63,7 +67,7 @@ export const useRefreshCreditScoreMutation = () => {
   return useMutation({
     mutationFn: () => financeApi.financeApi.refreshCreditScore(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: financeKeys.creditScore() });
+      void invalidateFinanceViews(queryClient, [financeKeys.creditScore(), financeKeys.dashboard()]);
     },
   });
 };
@@ -117,7 +121,11 @@ export const useApplyForLoanMutation = () => {
   return useMutation({
     mutationFn: (data: LoanApplicationRequest) => financeApi.financeApi.applyForLoan(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: financeKeys.loanApplications() });
+      void invalidateFinanceViews(queryClient, [
+        financeKeys.loanApplications(),
+        financeKeys.dashboard(),
+        financeKeys.accounts(),
+      ]);
     },
   });
 };
@@ -128,10 +136,14 @@ export const useDisburseLoanMutation = () => {
   return useMutation({
     mutationFn: (loanId: string) => financeApi.financeApi.disburseLoan(loanId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: financeKeys.loanApplications() });
-      queryClient.invalidateQueries({ queryKey: financeKeys.accounts() });
-      queryClient.invalidateQueries({ queryKey: financeKeys.ledger() });
-      queryClient.invalidateQueries({ queryKey: financeKeys.treasuryTransactions() });
+      void invalidateFinanceViews(queryClient, [
+        financeKeys.loanApplications(),
+        financeKeys.accounts(),
+        financeKeys.ledger(),
+        financeKeys.treasuryTransactions(),
+        financeKeys.treasuryBalance(),
+        financeKeys.dashboard(),
+      ]);
     },
   });
 };
@@ -184,7 +196,12 @@ export const useUpdateTreasuryConfigMutation = () => {
   return useMutation({
     mutationFn: (data: Partial<TreasuryConfig>) => financeApi.financeApi.updateTreasuryConfig(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: financeKeys.treasuryConfig() });
+      void invalidateFinanceViews(queryClient, [
+        financeKeys.treasuryConfig(),
+        financeKeys.treasuryBalance(),
+        financeKeys.treasuryTransactions(),
+        financeKeys.dashboard(),
+      ]);
     },
   });
 };
@@ -196,3 +213,19 @@ export const useTreasuryTransactionsQuery = () => {
     staleTime: 30000, // 30 seconds
   });
 };
+
+// Prompt-facing aliases requested by Branch A Prompt 06
+export const useFinanceDashboard = useFinanceDashboardQuery;
+export const useFinanceAccounts = useFinancialAccountsQuery;
+export const useFinanceLedger = useLedgerEntriesQuery;
+export const useTreasuryBalance = useTreasuryBalanceQuery;
+export const useTreasuryConfig = useTreasuryConfigQuery;
+export const useTreasurySweepConfig = useTreasuryConfigQuery;
+export const useTreasuryTransactions = useTreasuryTransactionsQuery;
+export const useFinanceLoans = useLoanApplicationsQuery;
+export const useApplyLoan = useApplyForLoanMutation;
+export const useDisburseLoan = useDisburseLoanMutation;
+export const useFinanceCreditScore = useCreditScoreQuery;
+export const useRefreshCreditScore = useRefreshCreditScoreMutation;
+export const useFinanceKycStatus = useKYCQuery;
+export const useSubmitFinanceKyc = useSubmitKYCMutation;

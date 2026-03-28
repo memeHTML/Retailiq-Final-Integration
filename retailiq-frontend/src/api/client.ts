@@ -56,7 +56,7 @@ const redirectToLogin = () => {
   }
 
   redirecting = true;
-  window.location.assign('/login');
+  window.history.replaceState({}, '', '/login');
 };
 
 const getRefreshToken = () => authStore.getState().refreshToken ?? getStoredRefreshToken();
@@ -74,6 +74,14 @@ const setTokens = (tokens: AuthTokens) => {
 type PayloadRecord = Record<string, unknown> & { success?: boolean; data?: unknown; meta?: unknown; error?: unknown };
 
 const isEnvelope = (value: unknown): value is PayloadRecord => Boolean(value) && typeof value === 'object';
+
+const attachStatus = (payload: unknown, status: number) => {
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    return { ...(payload as Record<string, unknown>), status };
+  }
+
+  return { message: typeof payload === 'string' ? payload : 'Request failed.', status, raw: payload };
+};
 
 const unwrapPayload = <T>(payload: unknown): T => {
   if (!isEnvelope(payload)) {
@@ -195,16 +203,16 @@ apiClient.interceptors.response.use(
         authStore.getState().clearAuth();
         clearStoredRefreshToken();
         redirectToLogin();
-        return Promise.reject(normalizeApiError(refreshError));
+        return Promise.reject(attachStatus(normalizeApiError(refreshError), 401));
       }
 
       authStore.getState().clearAuth();
       clearStoredRefreshToken();
       redirectToLogin();
-      return Promise.reject(axiosError.response.data ?? error);
+      return Promise.reject(attachStatus(axiosError.response.data ?? error, axiosError.response.status ?? 401));
     }
 
-    return Promise.reject(axiosError.response?.data ?? error);
+    return Promise.reject(attachStatus(axiosError.response?.data ?? error, axiosError.response?.status ?? 500));
   },
 );
 

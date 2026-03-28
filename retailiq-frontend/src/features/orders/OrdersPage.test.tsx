@@ -29,7 +29,7 @@ describe('OrdersPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Orders' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Orders Hub' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Sales' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Purchase Orders' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Marketplace' })).toBeTruthy();

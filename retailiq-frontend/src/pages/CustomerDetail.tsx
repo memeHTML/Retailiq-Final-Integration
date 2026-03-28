@@ -1,5 +1,5 @@
-import { Suspense, lazy, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -8,6 +8,9 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { CustomerForm } from '@/features/customers/CustomerForm';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { normalizeApiError } from '@/utils/errors';
 import {
   useCustomerQuery,
@@ -15,33 +18,38 @@ import {
   useCustomerTransactionsQuery,
   useUpdateCustomerMutation,
 } from '@/hooks/customers';
-import type { UpdateCustomerRequest } from '@/types/api';
+import type { CustomerTransactionsRequest } from '@/types/api';
 
-const CustomerLoyaltyTab = lazy(() =>
-  import('@/features/loyalty/CustomerLoyaltyTab')
-    .then((module) => ({ default: module.CustomerLoyaltyTab }))
-    .catch(() => ({ default: () => <BranchBTabFallback label="Loyalty" /> })),
-);
-const CustomerCreditTab = lazy(() =>
-  import('@/features/credit/CustomerCreditTab')
-    .then((module) => ({ default: module.CustomerCreditTab }))
-    .catch(() => ({ default: () => <BranchBTabFallback label="Credit" /> })),
-);
-const CustomerWhatsAppTab = lazy(() =>
-  import('@/features/whatsapp/CustomerWhatsAppTab')
-    .then((module) => ({ default: module.CustomerWhatsAppTab }))
-    .catch(() => ({ default: () => <BranchBTabFallback label="WhatsApp" /> })),
-);
+const CustomerLoyaltyTab = lazy(() => import('@/features/customers/CustomerLoyaltyTab'));
+const CustomerCreditTab = lazy(() => import('@/features/customers/CustomerCreditTab'));
+const CustomerWhatsAppTab = lazy(() => import('@/features/customers/CustomerWhatsAppTab'));
 
-interface TxnRow {
+type ActiveTab = 'overview' | 'transactions' | 'loyalty' | 'credit' | 'whatsapp';
+
+type TransactionRow = {
   transaction_id: string;
   created_at: string;
   payment_mode: string;
   notes: string | null;
+  amount?: number | null;
+  status?: string | null;
+  items_count?: number | null;
+  items?: Array<unknown> | null;
+};
+
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
 }
 
-function BranchBTabFallback({ label }: { label: string }) {
-  return <EmptyState title={`${label} tab unavailable`} body={`${label} data is loading or temporarily unavailable.`} />;
+function formatDate(value: string | null | undefined) {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
 }
 
 export default function CustomerDetailPage() {
@@ -51,16 +59,34 @@ export default function CustomerDetailPage() {
 
   const customerQuery = useCustomerQuery(id);
   const summaryQuery = useCustomerSummaryQuery(id);
-  const txnQuery = useCustomerTransactionsQuery(id);
-  const updateMutation = useUpdateCustomerMutation();
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
 
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState<UpdateCustomerRequest>({});
-  const [activeTab, setActiveTab] = useState<'profile' | 'transactions' | 'summary' | 'loyalty' | 'credit' | 'whatsapp'>('profile');
+  const transactionParams = useMemo(() => {
+    const params: CustomerTransactionsRequest = {
+      page: transactionPage,
+      page_size: 20,
+    };
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    return params;
+  }, [dateFrom, dateTo, transactionPage]);
+
+  const recentTransactionsQuery = useCustomerTransactionsQuery(id, { page: 1, page_size: 5 });
+  const txnQuery = useCustomerTransactionsQuery(id, transactionParams);
+  const updateMutation = useUpdateCustomerMutation();
 
   const customer = customerQuery.data;
   const summary = summaryQuery.data;
-  const transactions = txnQuery.data?.data ?? (Array.isArray(txnQuery.data) ? txnQuery.data : []) as TxnRow[];
+  const recentTransactions = (recentTransactionsQuery.data?.data ?? []) as TransactionRow[];
+  const transactions = (txnQuery.data?.data ?? []) as TransactionRow[];
+  const txnMeta = txnQuery.data?.meta;
+  const txnTotal = txnMeta?.total ?? transactions.length;
+  const txnPageSize = txnMeta?.page_size ?? 20;
+  const txnTotalPages = Math.max(1, Math.ceil(txnTotal / txnPageSize));
 
   if (customerQuery.isError) {
     return <ErrorState error={normalizeApiError(customerQuery.error)} onRetry={() => void customerQuery.refetch()} />;
@@ -79,146 +105,260 @@ export default function CustomerDetailPage() {
   }
 
   const startEdit = () => {
-    setEditForm({
-      name: customer.name,
-      mobile_number: customer.mobile_number,
-      email: customer.email,
-      gender: customer.gender,
-      birth_date: customer.birth_date,
-      address: customer.address,
-      notes: customer.notes,
-    });
-    setEditing(true);
+    setEditOpen(true);
   };
 
-  const saveEdit = () => {
-    updateMutation.mutate({ customerId: id, data: editForm }, {
-      onSuccess: () => setEditing(false),
-    });
-  };
+  const memberSince = formatDate(customer.created_at);
+  const initials = getInitials(customer.name);
+  const lazyCardFallback = (title: string) => (
+    <Card>
+      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+      <CardContent>
+        <SkeletonLoader variant="rect" height={160} />
+      </CardContent>
+    </Card>
+  );
+
+  const lazyCardError = (title: string) => (
+    <EmptyState title={`${title} unavailable`} body={`${title} could not be loaded right now.`} />
+  );
 
   return (
-    <PageFrame title={customer.name} subtitle={`Mobile: ${customer.mobile_number}`}>
-      <Button variant="ghost" onClick={() => navigate('/customers')} className="mb-4">← Back to Customers</Button>
+    <PageFrame
+      title={customer.name}
+      subtitle={`Mobile: ${customer.mobile_number}`}
+      actions={<Badge variant="secondary">Member since {memberSince}</Badge>}
+    >
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Button variant="ghost" onClick={() => navigate('/customers')}>← Back to Customers</Button>
+        {!editOpen && activeTab === 'overview' ? (
+          <Button variant="secondary" onClick={startEdit}>Edit Customer</Button>
+        ) : null}
+      </div>
 
-      {/* Tabs */}
-      <div className="button-row" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <Button variant={activeTab === 'profile' ? 'primary' : 'ghost'} onClick={() => setActiveTab('profile')}>Profile</Button>
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Button variant={activeTab === 'overview' ? 'primary' : 'ghost'} onClick={() => setActiveTab('overview')}>Overview</Button>
         <Button variant={activeTab === 'transactions' ? 'primary' : 'ghost'} onClick={() => setActiveTab('transactions')}>Transactions</Button>
-        <Button variant={activeTab === 'summary' ? 'primary' : 'ghost'} onClick={() => setActiveTab('summary')}>Summary</Button>
         <Button variant={activeTab === 'loyalty' ? 'primary' : 'ghost'} onClick={() => setActiveTab('loyalty')}>Loyalty</Button>
         <Button variant={activeTab === 'credit' ? 'primary' : 'ghost'} onClick={() => setActiveTab('credit')}>Credit</Button>
         <Button variant={activeTab === 'whatsapp' ? 'primary' : 'ghost'} onClick={() => setActiveTab('whatsapp')}>WhatsApp</Button>
       </div>
 
-      {/* Profile tab */}
-      {activeTab === 'profile' && (
-        <Card>
-          <CardHeader>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <CardTitle>Customer Profile</CardTitle>
-              {!editing && <Button variant="secondary" onClick={startEdit}>Edit</Button>}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {editing ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
-                <Input placeholder="Name" value={editForm.name ?? ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-                <Input placeholder="Mobile" value={editForm.mobile_number ?? ''} onChange={(e) => setEditForm({ ...editForm, mobile_number: e.target.value })} />
-                <Input placeholder="Email" value={editForm.email ?? ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value || null })} />
-                <Input placeholder="Address" value={editForm.address ?? ''} onChange={(e) => setEditForm({ ...editForm, address: e.target.value || null })} />
-                <select value={editForm.gender ?? ''} onChange={(e) => setEditForm({ ...editForm, gender: e.target.value || null })} className="input">
-                  <option value="">Gender</option>
-                  <option value="M">Male</option>
-                  <option value="F">Female</option>
-                  <option value="O">Other</option>
-                </select>
-                <Input type="date" value={editForm.birth_date ?? ''} onChange={(e) => setEditForm({ ...editForm, birth_date: e.target.value || null })} />
-                <div className="button-row" style={{ gridColumn: '1 / -1' }}>
-                  <Button onClick={saveEdit} disabled={updateMutation.isPending}>{updateMutation.isPending ? 'Saving...' : 'Save'}</Button>
-                  <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-lg font-semibold text-white">
+                    {initials || 'C'}
+                  </div>
+                  <div>
+                    <CardTitle>{customer.name}</CardTitle>
+                    <div className="text-sm text-gray-500">Mobile: {customer.mobile_number}</div>
+                    <div className="text-sm text-gray-500">Email: {customer.email ?? '—'}</div>
+                  </div>
                 </div>
-                {updateMutation.isError && <p className="text-danger">{normalizeApiError(updateMutation.error).message}</p>}
+                {!editOpen && <Button variant="secondary" onClick={startEdit}>Edit</Button>}
               </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div><span className="muted">Name</span><div>{customer.name}</div></div>
-                <div><span className="muted">Mobile</span><div>{customer.mobile_number}</div></div>
-                <div><span className="muted">Email</span><div>{customer.email ?? '—'}</div></div>
-                <div><span className="muted">Gender</span><div>{customer.gender ?? '—'}</div></div>
-                <div><span className="muted">Birth Date</span><div>{customer.birth_date ?? '—'}</div></div>
-                <div><span className="muted">Address</span><div>{customer.address ?? '—'}</div></div>
-                <div><span className="muted">Notes</span><div>{customer.notes ?? '—'}</div></div>
-                <div><span className="muted">Created</span><div>{customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '—'}</div></div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <span className="text-xs uppercase tracking-wide text-gray-500">Name</span>
+                  <div className="mt-1 font-medium">{customer.name}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <span className="text-xs uppercase tracking-wide text-gray-500">Mobile</span>
+                  <div className="mt-1 font-medium">{customer.mobile_number}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <span className="text-xs uppercase tracking-wide text-gray-500">Email</span>
+                  <div className="mt-1 font-medium">{customer.email ?? '—'}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <span className="text-xs uppercase tracking-wide text-gray-500">Gender</span>
+                  <div className="mt-1 font-medium">{customer.gender ?? '—'}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <span className="text-xs uppercase tracking-wide text-gray-500">Birth Date</span>
+                  <div className="mt-1 font-medium">{formatDate(customer.birth_date)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <span className="text-xs uppercase tracking-wide text-gray-500">Address</span>
+                  <div className="mt-1 font-medium">{customer.address ?? '—'}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <span className="text-xs uppercase tracking-wide text-gray-500">Notes</span>
+                  <div className="mt-1 font-medium">{customer.notes ?? '—'}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <span className="text-xs uppercase tracking-wide text-gray-500">Member Since</span>
+                  <div className="mt-1 font-medium">{memberSince}</div>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
 
-      {/* Transactions tab */}
-      {activeTab === 'transactions' && (
-        <Card>
-          <CardHeader><CardTitle>Transaction History</CardTitle></CardHeader>
-          <CardContent>
-            {txnQuery.isLoading ? <SkeletonLoader variant="rect" height={200} /> : (transactions as TxnRow[]).length === 0 ? (
-              <EmptyState title="No transactions" body="This customer has no recorded transactions." />
-            ) : (
-              <DataTable<TxnRow>
-                columns={[
-                  { key: 'id', header: 'Transaction ID', render: (row: TxnRow) => row.transaction_id },
-                  { key: 'date', header: 'Date', render: (row: TxnRow) => new Date(row.created_at).toLocaleString() },
-                  { key: 'mode', header: 'Payment Mode', render: (row: TxnRow) => row.payment_mode },
-                  { key: 'notes', header: 'Notes', render: (row: TxnRow) => row.notes ?? '—' },
-                ]}
-                data={transactions as TxnRow[]}
-              />
-            )}
-          </CardContent>
-        </Card>
-      )}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <Card>
+              <CardHeader><CardTitle>Total Spent</CardTitle></CardHeader>
+              <CardContent><h2 style={{ marginBottom: 0 }}>₹{summary?.total_spent?.toLocaleString() ?? '0'}</h2></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Total Transactions</CardTitle></CardHeader>
+              <CardContent><h2 style={{ marginBottom: 0 }}>{summary?.total_transactions ?? 0}</h2></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Avg Basket Size</CardTitle></CardHeader>
+              <CardContent><h2 style={{ marginBottom: 0 }}>₹{summary?.avg_basket_size?.toLocaleString() ?? '0'}</h2></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Last Visit</CardTitle></CardHeader>
+              <CardContent><h2 style={{ marginBottom: 0 }}>{formatDate(summary?.last_visit)}</h2></CardContent>
+            </Card>
+          </div>
 
-      {/* Summary tab */}
-      {activeTab === 'summary' && (
-        <div>
-          {summaryQuery.isLoading ? <SkeletonLoader variant="rect" height={200} /> : summary ? (
-            <div className="grid grid--3">
-              <Card>
-                <CardHeader><CardTitle>Total Spent</CardTitle></CardHeader>
-                <CardContent><h2 style={{ marginBottom: 0 }}>₹{summary.total_spent.toLocaleString()}</h2></CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Total Transactions</CardTitle></CardHeader>
-                <CardContent><h2 style={{ marginBottom: 0 }}>{summary.total_transactions}</h2></CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Avg Basket Size</CardTitle></CardHeader>
-                <CardContent><h2 style={{ marginBottom: 0 }}>₹{summary.avg_basket_size.toLocaleString()}</h2></CardContent>
-              </Card>
-            </div>
-          ) : (
-            <EmptyState title="No summary data" body="Summary data is not available for this customer yet." />
-          )}
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle>Top Categories</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {summary?.top_categories?.length ? (
+                  summary.top_categories.map((item) => {
+                    const width = Math.max(8, Math.min(100, Number(item.amount ?? 0)));
+                    return (
+                      <div key={item.category} className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{item.category}</span>
+                          <span className="text-gray-500">₹{Number(item.amount ?? 0).toLocaleString()}</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-gray-100">
+                          <div className="h-2 rounded-full bg-blue-600" style={{ width: `${width}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <EmptyState title="No category data" body="This customer does not have category-level spend data yet." />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Recent Transactions</CardTitle></CardHeader>
+              <CardContent>
+                {recentTransactionsQuery.isLoading ? (
+                  <SkeletonLoader variant="rect" height={200} />
+                ) : recentTransactions.length === 0 ? (
+                  <EmptyState title="No transactions" body="This customer has no recent transactions." />
+                ) : (
+                  <DataTable<TransactionRow>
+                    columns={[
+                      { key: 'transaction_id', header: 'Transaction ID', render: (row) => row.transaction_id },
+                      { key: 'created_at', header: 'Date', render: (row) => new Date(row.created_at).toLocaleString() },
+                      { key: 'payment_mode', header: 'Payment Mode', render: (row) => row.payment_mode },
+                      { key: 'notes', header: 'Notes', render: (row) => row.notes ?? '—' },
+                    ]}
+                    data={recentTransactions}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
-      {activeTab === 'loyalty' && (
-        <Suspense fallback={<BranchBTabFallback label="Loyalty" />}>
-          <CustomerLoyaltyTab customerId={id} />
-        </Suspense>
+      {activeTab === 'transactions' && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <CardTitle>Transaction History</CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(event) => {
+                    setTransactionPage(1);
+                    setDateFrom(event.target.value);
+                  }}
+                />
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(event) => {
+                    setTransactionPage(1);
+                    setDateTo(event.target.value);
+                  }}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {txnQuery.isLoading ? (
+              <SkeletonLoader variant="rect" height={240} />
+            ) : transactions.length === 0 ? (
+              <EmptyState title="No transactions" body="This customer has no recorded transactions for the selected period." />
+            ) : (
+              <DataTable<TransactionRow>
+                columns={[
+                  { key: 'created_at', header: 'Date', render: (row) => new Date(row.created_at).toLocaleString() },
+                  { key: 'transaction_id', header: 'Transaction ID', render: (row) => row.transaction_id },
+                  { key: 'items_count', header: 'Items Count', render: (row) => Number(row.items_count ?? row.items?.length ?? 0).toLocaleString() },
+                  { key: 'amount', header: 'Amount', render: (row) => `₹${Number(row.amount ?? 0).toLocaleString()}` },
+                  { key: 'payment_mode', header: 'Payment Mode', render: (row) => row.payment_mode },
+                  { key: 'status', header: 'Status', render: (row) => row.status ?? 'Completed' },
+                ]}
+                data={transactions}
+              />
+            )}
+
+            <div className="button-row" style={{ justifyContent: 'center' }}>
+              <Button variant="ghost" disabled={transactionPage <= 1} onClick={() => setTransactionPage((value) => Math.max(1, value - 1))}>
+                ← Previous
+              </Button>
+              <span className="muted">Page {transactionPage} of {txnTotalPages}</span>
+              <Button variant="ghost" disabled={transactionPage >= txnTotalPages} onClick={() => setTransactionPage((value) => value + 1)}>
+                Next →
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {activeTab === 'credit' && (
-        <Suspense fallback={<BranchBTabFallback label="Credit" />}>
-          <CustomerCreditTab customerId={id} />
-        </Suspense>
-      )}
+      {activeTab === 'loyalty' ? (
+        <ErrorBoundary fallback={lazyCardError('Loyalty')}>
+          <Suspense fallback={lazyCardFallback('Loyalty')}>
+            <CustomerLoyaltyTab customerId={id} customerName={customer.name} />
+          </Suspense>
+        </ErrorBoundary>
+      ) : null}
 
-      {activeTab === 'whatsapp' && (
-        <Suspense fallback={<BranchBTabFallback label="WhatsApp" />}>
-          <CustomerWhatsAppTab phoneNumber={customer?.mobile_number ?? ''} />
-        </Suspense>
-      )}
+      {activeTab === 'credit' ? (
+        <ErrorBoundary fallback={lazyCardError('Credit')}>
+          <Suspense fallback={lazyCardFallback('Credit')}>
+            <CustomerCreditTab customerId={id} customerName={customer.name} />
+          </Suspense>
+        </ErrorBoundary>
+      ) : null}
+
+      {activeTab === 'whatsapp' ? (
+        <ErrorBoundary fallback={lazyCardError('WhatsApp')}>
+          <Suspense fallback={lazyCardFallback('WhatsApp')}>
+            <CustomerWhatsAppTab customerId={id} customerName={customer.name} mobileNumber={customer.mobile_number} />
+          </Suspense>
+        </ErrorBoundary>
+      ) : null}
+
+      <CustomerForm
+        open={editOpen}
+        mode="edit"
+        customer={customer}
+        isSubmitting={updateMutation.isPending}
+        onClose={() => setEditOpen(false)}
+        onSubmit={async (payload) => {
+          await updateMutation.mutateAsync({ customerId: id, data: payload });
+        }}
+      />
     </PageFrame>
   );
 }

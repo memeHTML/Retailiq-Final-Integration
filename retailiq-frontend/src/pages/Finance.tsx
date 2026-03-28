@@ -31,6 +31,7 @@ import { uiStore } from '@/stores/uiStore';
 import { formatCurrency } from '@/utils/numbers';
 import { formatDate } from '@/utils/dates';
 import { normalizeApiError } from '@/utils/errors';
+import { routes } from '@/routes/routes';
 import type { Column as _Column } from '@/components/ui/DataTable';
 import type { CreditTransaction, FinancialAccount, LoanApplication, TreasuryTransaction } from '@/api/finance';
 
@@ -287,7 +288,7 @@ export default function FinancePage() {
             <div className="text-sm uppercase tracking-wide text-gray-500">Quick Links</div>
             <div className="text-lg font-semibold">GST & Tax</div>
             <p className="text-sm text-gray-500">Open GST configuration, filing helpers, and tax calculator tools.</p>
-            <Link className="button button--secondary" to="/finance/gst">Open GST & Tax</Link>
+            <Link className="button button--secondary" to={routes.financeGst}>Open GST & Tax</Link>
           </CardContent>
         </Card>
         <Card className="transition-shadow hover:shadow-md">
@@ -295,7 +296,7 @@ export default function FinancePage() {
             <div className="text-sm uppercase tracking-wide text-gray-500">Quick Links</div>
             <div className="text-lg font-semibold">E-Invoicing</div>
             <p className="text-sm text-gray-500">Review invoice compliance, IRN status, and QR code outputs.</p>
-            <Link className="button button--secondary" to="/finance/einvoice">Open E-Invoicing</Link>
+            <Link className="button button--secondary" to={routes.financeEinvoice}>Open E-Invoicing</Link>
           </CardContent>
         </Card>
       </div>

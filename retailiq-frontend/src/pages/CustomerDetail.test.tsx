@@ -56,16 +56,16 @@ vi.mock('@/hooks/customers', () => ({
   }),
 }));
 
-vi.mock('@/features/loyalty/CustomerLoyaltyTab', () => ({
-  CustomerLoyaltyTab: () => <div>Loyalty tab content</div>,
+vi.mock('@/features/customers/CustomerLoyaltyTab', () => ({
+  default: () => <div>Loyalty tab content</div>,
 }));
 
-vi.mock('@/features/credit/CustomerCreditTab', () => ({
-  CustomerCreditTab: () => <div>Credit tab content</div>,
+vi.mock('@/features/customers/CustomerCreditTab', () => ({
+  default: () => <div>Credit tab content</div>,
 }));
 
-vi.mock('@/features/whatsapp/CustomerWhatsAppTab', () => ({
-  CustomerWhatsAppTab: ({ phoneNumber }: { phoneNumber: string }) => <div>WhatsApp tab content {phoneNumber}</div>,
+vi.mock('@/features/customers/CustomerWhatsAppTab', () => ({
+  default: ({ mobileNumber }: { mobileNumber: string }) => <div>WhatsApp tab content {mobileNumber}</div>,
 }));
 
 describe('CustomerDetailPage', () => {
@@ -84,15 +84,15 @@ describe('CustomerDetailPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Ada Lovelace' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Ada Lovelace' })).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Loyalty' }));
-    expect(screen.getByText('Loyalty tab content')).toBeTruthy();
+    expect(await screen.findByText('Loyalty tab content')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Credit' }));
-    expect(screen.getByText('Credit tab content')).toBeTruthy();
+    expect(await screen.findByText('Credit tab content')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'WhatsApp' }));
-    expect(screen.getByText('WhatsApp tab content 9999999999')).toBeTruthy();
+    expect(await screen.findByText('WhatsApp tab content 9999999999')).toBeTruthy();
   });
 });

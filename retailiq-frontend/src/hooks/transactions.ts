@@ -46,6 +46,7 @@ export const useCreateTransactionReturnMutation = () => {
     onSuccess: (_data: CreateTransactionReturnResponse, variables: { transactionId: string | number; payload: CreateTransactionReturnRequest }) => {
       queryClient.invalidateQueries({ queryKey: ['transactions', 'detail', variables.transactionId] });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', 'daily-summary'] });
     },
   });
 };

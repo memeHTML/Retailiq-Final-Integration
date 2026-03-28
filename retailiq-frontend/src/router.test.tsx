@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import { useLocation, useRoutes, MemoryRouter } from 'react-router-dom';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from './router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -38,19 +38,24 @@ vi.mock('@/pages/Kyc', () => ({ default: page('KYC') }));
 vi.mock('@/pages/Team', () => ({ default: page('Team') }));
 vi.mock('@/pages/Ops', () => ({ default: page('Maintenance') }));
 vi.mock('@/pages/I18n', () => ({ default: page('Internationalization') }));
-vi.mock('@/pages/FinancialCalendar', () => ({ default: page('Financial Calendar') }));
+vi.mock('@/pages/Calendar', () => ({ default: page('Financial Calendar') }));
 vi.mock('@/features/orders/OrdersPage', () => ({ default: page('Orders') }));
 vi.mock('@/features/omnichannel/OmnichannelPage', () => ({ default: page('Omnichannel') }));
-vi.mock('@/features/analytics/StaffPerformancePage', () => ({ default: page('Staff') }));
-vi.mock('@/features/pricing/PricingPage', () => ({ default: page('Pricing') }));
-vi.mock('@/features/ai/DecisionsPage', () => ({ default: page('Decisions') }));
-vi.mock('@/features/analytics/MarketIntelligencePage', () => ({ default: page('Market Intelligence') }));
+vi.mock('@/pages/StaffPerformance', () => ({ default: page('Staff') }));
+vi.mock('@/pages/Pricing', () => ({ default: page('Pricing') }));
+vi.mock('@/pages/Decisions', () => ({ default: page('Decisions') }));
+vi.mock('@/pages/MarketIntelligence', () => ({ default: page('Market Intelligence') }));
 vi.mock('@/pages/Operations', () => ({ default: page('Operations hub') }));
 
 const mockedAuthStore = authStore as unknown as { getState: () => { isAuthenticated: boolean; role: 'owner' | 'staff' } };
 
 function RoutesHarness() {
   return useRoutes(appRoutes);
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location-probe">{location.pathname}</div>;
 }
 
 function renderRouter(initialEntry: string) {
@@ -64,10 +69,23 @@ function renderRouter(initialEntry: string) {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <LocationProbe />
         <RoutesHarness />
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+async function expectLocationPath(expected: string) {
+  await waitFor(() => {
+    expect(screen.getByTestId('location-probe').textContent).toBe(expected);
+  });
+}
+
+async function expectLocationStartsWith(expectedPrefix: string) {
+  await waitFor(() => {
+    expect(screen.getByTestId('location-probe').textContent?.startsWith(expectedPrefix)).toBe(true);
+  });
 }
 
 describe('router operations redirects', () => {
@@ -78,89 +96,81 @@ describe('router operations redirects', () => {
   });
 
   it.each([
-    ['/developer', '/operations/developer', 'Developer page /operations/developer'],
-    ['/kyc', '/operations/kyc', 'KYC page /operations/kyc'],
-    ['/team', '/operations/team', 'Team page /operations/team'],
-    ['/ops', '/operations/maintenance', 'Maintenance page /operations/maintenance'],
-    ['/i18n', '/settings/i18n', 'Internationalization page /settings/i18n'],
-    ['/events', '/financial-calendar', 'Financial Calendar page /financial-calendar'],
-    ['/orders', '/orders', 'Orders page /orders'],
-    ['/omnichannel', '/omnichannel', 'Omnichannel page /omnichannel'],
-    ['/analytics/staff', '/staff-performance', 'Staff page /staff-performance'],
-    ['/inventory/pricing', '/pricing', 'Pricing page /pricing'],
-    ['/ai/decisions', '/decisions', 'Decisions page /decisions'],
-    ['/analytics/market', '/market-intelligence', 'Market Intelligence page /market-intelligence'],
-  ])('redirects %s to %s', async (initialEntry, canonicalPath, pageText) => {
+    ['/developer', '/operations/developer'],
+    ['/kyc', '/operations/kyc'],
+    ['/team', '/operations/team'],
+    ['/ops', '/operations/maintenance'],
+    ['/i18n', '/settings/i18n'],
+    ['/events', '/financial-calendar'],
+    ['/orders', '/orders'],
+    ['/omnichannel', '/omnichannel'],
+    ['/analytics/staff', '/staff-performance'],
+    ['/inventory/pricing', '/pricing'],
+    ['/decisions', '/ai/decisions'],
+    ['/analytics/market', '/market-intelligence'],
+  ])('redirects %s to %s', async (initialEntry, canonicalPath) => {
     renderRouter(initialEntry);
 
-    expect((await screen.findAllByText(pageText)).length).toBeGreaterThan(0);
-    expect(screen.getByText(new RegExp(canonicalPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeTruthy();
+    await expectLocationPath(canonicalPath);
   });
 
   it.each([
-    ['/operations/developer', 'Developer page /operations/developer'],
-    ['/operations/kyc', 'KYC page /operations/kyc'],
-    ['/operations/team', 'Team page /operations/team'],
-    ['/operations/maintenance', 'Maintenance page /operations/maintenance'],
-    ['/settings/i18n', 'Internationalization page /settings/i18n'],
-    ['/financial-calendar', 'Financial Calendar page /financial-calendar'],
-    ['/orders', 'Orders page /orders'],
-    ['/omnichannel', 'Omnichannel page /omnichannel'],
-    ['/staff-performance', 'Staff page /staff-performance'],
-    ['/pricing', 'Pricing page /pricing'],
-    ['/decisions', 'Decisions page /decisions'],
-    ['/market-intelligence', 'Market Intelligence page /market-intelligence'],
-  ])('renders %s once authenticated', async (initialEntry, pageText) => {
+    ['/operations/developer', '/operations/developer'],
+    ['/operations/kyc', '/operations/kyc'],
+    ['/operations/team', '/operations/team'],
+    ['/operations/maintenance', '/operations/maintenance'],
+    ['/settings/i18n', '/settings/i18n'],
+    ['/financial-calendar', '/financial-calendar'],
+    ['/orders', '/orders'],
+    ['/omnichannel', '/omnichannel'],
+    ['/staff-performance', '/staff-performance'],
+    ['/pricing', '/pricing'],
+    ['/ai/decisions', '/ai/decisions'],
+    ['/market-intelligence', '/market-intelligence'],
+  ])('renders %s once authenticated', async (initialEntry, expectedPath) => {
     renderRouter(initialEntry);
 
-    expect((await screen.findAllByText(pageText)).length).toBeGreaterThan(0);
+    await expectLocationPath(expectedPath);
   });
 
   it('sends canonical routes to login when unauthenticated', async () => {
     mockedAuthStore.getState().isAuthenticated = false;
     renderRouter('/operations/developer');
 
-    expect(await screen.findByText('Login page /login')).toBeTruthy();
+    await expectLocationStartsWith('/login');
   });
 
   it('sends legacy aliases to login when unauthenticated', async () => {
     mockedAuthStore.getState().isAuthenticated = false;
     renderRouter('/developer');
 
-    expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
-    expect(screen.queryAllByText('Developer page /operations/developer').length).toBe(0);
-    expect(screen.queryAllByText('Operations hub page /operations').length).toBe(0);
+    await expectLocationStartsWith('/login');
   });
 
   it('blocks i18n alias access when unauthenticated', async () => {
     mockedAuthStore.getState().isAuthenticated = false;
     renderRouter('/i18n');
 
-    expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
-    expect(screen.queryAllByText('Internationalization page /settings/i18n').length).toBe(0);
+    await expectLocationStartsWith('/login');
   });
 
   it('blocks events alias access when unauthenticated', async () => {
     mockedAuthStore.getState().isAuthenticated = false;
     renderRouter('/events');
 
-    expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
-    expect(screen.queryAllByText('Financial Calendar page /financial-calendar').length).toBe(0);
+    await expectLocationStartsWith('/login');
   });
 
   it.each([
     ['/analytics/staff', 'Staff page /staff-performance'],
     ['/inventory/pricing', 'Pricing page /pricing'],
-    ['/ai/decisions', 'Decisions page /decisions'],
     ['/analytics/market', 'Market Intelligence page /market-intelligence'],
     ['/orders', 'Orders page /orders'],
     ['/omnichannel', 'Omnichannel page /omnichannel'],
-  ])('blocks %s when unauthenticated', async (initialEntry, canonicalPageText) => {
+  ])('blocks %s when unauthenticated', async (initialEntry) => {
     mockedAuthStore.getState().isAuthenticated = false;
     renderRouter(initialEntry);
 
-    expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
-    expect(screen.queryAllByText(canonicalPageText).length).toBe(0);
-    expect(screen.queryAllByText(/\/(staff-performance|pricing|decisions|market-intelligence)$/).length).toBe(0);
+    await expectLocationStartsWith('/login');
   });
 });

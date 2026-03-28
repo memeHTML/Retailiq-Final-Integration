@@ -19,13 +19,15 @@
     "baseUrl": ".",
     "paths": {
       "@/router": ["src/router.tsx"],
-      "@/routes/*": ["src/routes/*"],
       "@/lib/*": ["src/lib/*"],
+      "@/routes/*": ["src/routes/*"],
       "@/api/*": ["src/api/*"],
       "@/hooks/*": ["src/hooks/*"],
       "@/features/*": ["src/features/*"],
       "@/stores/*": ["src/stores/*"],
       "@/components/*": ["src/components/*"],
+      "@/components/shared/*": ["src/components/shared/*"],
+      "@/components/layout/*": ["src/components/layout/*"],
       "@/pages/*": ["src/pages/*"],
       "@/types/*": ["src/types/*"],
       "@/utils/*": ["src/utils/*"],
@@ -34,6 +36,6 @@
     },
     "types": ["vite/client", "node"]
   },
-  "include": ["src", "vite.config.ts", "eslint.config.js"],
+  "include": ["src", "vite.config.js", "eslint.config.js"],
   "references": []
 }
