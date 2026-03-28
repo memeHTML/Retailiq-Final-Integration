@@ -12,6 +12,10 @@ describe('route registry', () => {
     expect(routes.financeGst).toBe('/finance/gst');
     expect(routes.financeEinvoice).toBe('/finance/einvoice');
     expect(routes.marketIntelligence).toBe('/market-intelligence');
+    expect(routes.analyticsMarket).toBe('/analytics/market');
+    expect(routes.analyticsStaff).toBe('/analytics/staff');
+    expect(routes.inventoryPricing).toBe('/inventory/pricing');
+    expect(routes.aiDecisions).toBe('/ai/decisions');
     expect(routes.pos).toBe('/pos');
     expect(routes.stockAudit).toBe('/inventory/stock-audit');
     expect(routes.inventoryReceipts).toBe('/inventory/receipts');
@@ -44,6 +48,10 @@ describe('route registry', () => {
     expect(routes.operations).toBe('/operations');
     expect(routes.developer).toBe('/operations/developer');
     expect(routes.developerLegacy).toBe('/developer');
+    expect(routes.analyticsStaff).toBe('/analytics/staff');
+    expect(routes.inventoryPricing).toBe('/inventory/pricing');
+    expect(routes.aiDecisions).toBe('/ai/decisions');
+    expect(routes.analyticsMarket).toBe('/analytics/market');
     expect(routes.kyc).toBe('/operations/kyc');
     expect(routes.kycLegacy).toBe('/kyc');
     expect(routes.team).toBe('/operations/team');

@@ -1,66 +1,50 @@
 /**
  * src/api/marketIntelligence.ts
- * Backend-aligned market intelligence adapters
+ * Backend-aligned market intelligence adapters.
  */
 import { request } from './client';
 
 const MARKET_BASE = '/api/v1/market';
 
 export interface MarketSummary {
-  region: string;
-  total_stores: number;
-  average_price: number;
-  price_volatility: number;
-  demand_index: number;
-  competitor_count: number;
-  last_updated: string;
+  signals_last_24h: Record<
+    string,
+    {
+      count: number;
+      avg_value: number;
+    }
+  >;
+  generated_at: string;
 }
 
-export interface PriceSignal {
+export interface MarketSignal {
   id: string;
-  product_id: string;
-  product_name: string;
-  sku: string;
-  current_price: number;
-  market_price: number;
-  price_difference: number;
-  price_difference_percent: number;
-  trend: 'UP' | 'DOWN' | 'STABLE';
-  confidence: number;
-  signal_date: string;
-  region: string;
-  competitor_prices: {
-    competitor_name: string;
-    price: number;
-    last_seen: string;
-  }[];
+  signal_type: string;
+  source_id: string | number | null;
+  category_id: string | number | null;
+  region_code: string | null;
+  value: number | null;
+  confidence: number | null;
+  quality_score: number | null;
+  timestamp: string;
 }
 
 export interface PriceIndex {
   id: string;
-  category: string;
-  region: string;
-  index_value: number;
-  base_value: number;
-  change_percent: number;
-  period: string;
-  created_at: string;
+  category_id: string | number | null;
+  region_code: string | null;
+  index_value: number | null;
+  computation_method: string | null;
+  computed_at: string;
 }
 
 export interface MarketAlert {
-  id: string;
-  type: 'PRICE_DROP' | 'PRICE_RISE' | 'NEW_COMPETITOR' | 'STOCK_OUT' | 'DEMAND_SPIKE';
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  title: string;
+  id: string | number;
+  alert_type: string;
+  severity: string;
   message: string;
-  product_id?: string;
-  product_name?: string;
-  region?: string;
-  threshold_value?: number;
-  current_value?: number;
-  is_acknowledged: boolean;
-  acknowledged_by?: string;
-  acknowledged_at?: string;
+  recommended_action: string | null;
+  acknowledged: boolean;
   created_at: string;
 }
 
@@ -70,17 +54,17 @@ export interface CompetitorAnalysis {
   region: string;
   total_products: number;
   average_pricing: number;
-  pricing_strategy: 'PREMIUM' | 'VALUE' | 'COMPETITIVE';
+  pricing_strategy: string;
   market_share: number;
   strengths: string[];
   weaknesses: string[];
   last_analyzed: string;
-  price_comparison: {
+  price_comparison: Array<{
     category: string;
     competitor_price: number;
     our_price: number;
     difference: number;
-  }[];
+  }>;
 }
 
 export interface DemandForecast {
@@ -91,375 +75,326 @@ export interface DemandForecast {
   forecast_demand: number;
   forecast_period: string;
   confidence_score: number;
-  factors: {
+  factors: Array<{
     factor: string;
     impact: number;
     description: string;
-  }[];
+  }>;
   recommendations: string[];
   created_at: string;
 }
 
 export interface MarketRecommendation {
   id: string;
-  type: 'PRICING' | 'STOCK' | 'MARKETING';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  type: string;
+  priority: string;
   title: string;
   description: string;
   expected_impact: string;
-  effort_required: 'LOW' | 'MEDIUM' | 'HIGH';
-  due_date?: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  effort_required: string;
+  due_date: string | null;
+  status: string;
   created_at: string;
 }
 
-const nowIso = () => new Date().toISOString();
+export interface ComputePriceIndexResponse {
+  category_id: string | number;
+  new_index: number;
+}
 
-const toSummaryList = (payload: unknown): Record<string, unknown>[] => {
+const asArray = <T>(payload: unknown): T[] => {
   if (Array.isArray(payload)) {
-    return payload as Record<string, unknown>[];
+    return payload as T[];
   }
+
   if (payload && typeof payload === 'object') {
-    return [payload as Record<string, unknown>];
+    return [payload as T];
   }
+
   return [];
 };
 
-const toTrend = (signalType?: string, value?: number): PriceSignal['trend'] => {
-  if ((signalType ?? '').includes('DOWN') || Number(value ?? 0) < 0) {
-    return 'DOWN';
+const asNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') {
+    return null;
   }
-  if ((signalType ?? '').includes('UP') || Number(value ?? 0) > 0) {
-    return 'UP';
-  }
-  return 'STABLE';
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 };
 
-const mapAlertType = (type?: string): MarketAlert['type'] => {
-  switch (type) {
-    case 'PRICE_RISE':
-      return 'PRICE_RISE';
-    case 'NEW_COMPETITOR':
-      return 'NEW_COMPETITOR';
-    case 'STOCK_OUT':
-      return 'STOCK_OUT';
-    case 'DEMAND_SPIKE':
-      return 'DEMAND_SPIKE';
-    default:
-      return 'PRICE_DROP';
+const asString = (value: unknown, fallback = '') => {
+  if (value === null || value === undefined) {
+    return fallback;
   }
+
+  return String(value);
 };
 
-const mapSeverity = (severity?: string): MarketAlert['severity'] => {
-  switch (severity) {
-    case 'CRITICAL':
-      return 'CRITICAL';
-    case 'HIGH':
-      return 'HIGH';
-    case 'MEDIUM':
-      return 'MEDIUM';
-    default:
-      return 'LOW';
+const asSummaryBreakdown = (value: unknown): Record<string, { count: number; avg_value: number }> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
   }
-};
 
-const makeJsonBlob = (data: unknown) => new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, raw]) => {
+      const record = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+
+      return [
+        key,
+        {
+          count: Number(record.count ?? 0),
+          avg_value: Number(record.avg_value ?? 0),
+        },
+      ];
+    }),
+  );
+};
 
 export const marketIntelligenceApi = {
-  getMarketSummary: async (region?: string): Promise<MarketSummary[]> => {
+  getMarketSummary: async (): Promise<MarketSummary> => {
     const response = await request<unknown>({ url: `${MARKET_BASE}/summary`, method: 'GET' });
 
-    return toSummaryList(response)
-      .map((item) => ({
-        region: String(item.region ?? item.region_code ?? item.name ?? 'All Regions'),
-        total_stores: Number(item.total_stores ?? item.store_count ?? 0),
-        average_price: Number(item.average_price ?? item.avg_price ?? 0),
-        price_volatility: Number(item.price_volatility ?? 0),
-        demand_index: Number(item.demand_index ?? 0),
-        competitor_count: Number(item.competitor_count ?? 0),
-        last_updated: String(item.last_updated ?? nowIso()),
-      }))
-      .filter((item) => !region || item.region.toLowerCase().includes(region.toLowerCase()));
+    const record = response && typeof response === 'object' && !Array.isArray(response) ? (response as Record<string, unknown>) : {};
+
+    return {
+      signals_last_24h: asSummaryBreakdown(record.signals_last_24h),
+      generated_at: asString(record.generated_at, new Date().toISOString()),
+    };
   },
 
   getPriceSignals: async (params?: {
-    product_id?: string;
-    category?: string;
-    region?: string;
-    trend?: 'UP' | 'DOWN' | 'STABLE';
-    page?: number;
+    category_id?: number | string;
+    signal_type?: string;
     limit?: number;
-  }): Promise<{ signals: PriceSignal[]; total: number; page: number; pages: number }> => {
-    const response = await request<Array<{
-      id?: string | number;
-      signal_type?: string;
-      region_code?: string;
-      value?: number;
-      confidence?: number;
-      timestamp?: string;
-    }>>({
+  }): Promise<MarketSignal[]> => {
+    const response = await request<unknown>({
       url: `${MARKET_BASE}/signals`,
       method: 'GET',
       params: {
+        category_id: params?.category_id,
+        signal_type: params?.signal_type,
         limit: params?.limit,
       },
     });
 
-    const signals = Array.isArray(response)
-      ? response.map((signal) => ({
-          id: String(signal.id ?? ''),
-          product_id: params?.product_id ?? '',
-          product_name: `Signal ${signal.id ?? ''}`,
-          sku: '',
-          current_price: Number(signal.value ?? 0),
-          market_price: Number(signal.value ?? 0),
-          price_difference: 0,
-          price_difference_percent: 0,
-          trend: toTrend(signal.signal_type, signal.value),
-          confidence: Number(signal.confidence ?? 0),
-          signal_date: signal.timestamp ?? nowIso(),
-          region: String(signal.region_code ?? ''),
-          competitor_prices: [],
-        }))
-      : [];
-
-    const filtered = signals.filter((signal) => {
-      if (params?.region && !signal.region.toLowerCase().includes(params.region.toLowerCase())) {
-        return false;
-      }
-      if (params?.trend && signal.trend !== params.trend) {
-        return false;
-      }
-      return true;
-    });
-
-    return {
-      signals: filtered,
-      total: filtered.length,
-      page: params?.page ?? 1,
-      pages: filtered.length ? 1 : 0,
-    };
+    return asArray<Record<string, unknown>>(response).map((signal) => ({
+      id: asString(signal.id),
+      signal_type: asString(signal.signal_type, 'UNKNOWN'),
+      source_id: signal.source_id == null ? null : asString(signal.source_id),
+      category_id: signal.category_id == null ? null : asString(signal.category_id),
+      region_code: signal.region_code ? String(signal.region_code) : null,
+      value: asNumber(signal.value),
+      confidence: asNumber(signal.confidence),
+      quality_score: asNumber(signal.quality_score),
+      timestamp: asString(signal.timestamp, new Date().toISOString()),
+    }));
   },
 
-  getPriceIndices: async (_params?: {
-    category?: string;
-    region?: string;
-    from_period?: string;
-    to_period?: string;
+  getPriceIndices: async (params?: {
+    category_id?: number | string;
+    days?: number;
   }): Promise<PriceIndex[]> => {
-    const response = await request<Array<{
-      id?: string | number;
-      category_id?: string | number;
-      region_code?: string;
-      index_value?: number;
-      computed_at?: string;
-    }>>({
+    const response = await request<unknown>({
       url: `${MARKET_BASE}/indices`,
       method: 'GET',
+      params: {
+        category_id: params?.category_id,
+        days: params?.days,
+      },
     });
 
-    return Array.isArray(response)
-      ? response.map((index) => ({
-          id: String(index.id ?? ''),
-          category: String(index.category_id ?? ''),
-          region: String(index.region_code ?? ''),
-          index_value: Number(index.index_value ?? 0),
-          base_value: 100,
-          change_percent: Number(index.index_value ?? 0) - 100,
-          period: '',
-          created_at: index.computed_at ?? nowIso(),
-        }))
-      : [];
+    return asArray<Record<string, unknown>>(response).map((index) => ({
+      id: asString(index.id),
+      category_id: index.category_id == null ? null : asString(index.category_id),
+      region_code: index.region_code ? String(index.region_code) : null,
+      index_value: asNumber(index.index_value),
+      computation_method: index.computation_method ? String(index.computation_method) : null,
+      computed_at: asString(index.computed_at, new Date().toISOString()),
+    }));
   },
 
   computePriceIndex: async (data: {
-    category: string;
-    region: string;
-    period: string;
-    product_ids: string[];
-  }): Promise<PriceIndex> => {
-    const response = await request<{ category_id?: string | number; new_index?: number }>({
+    category_id: number | string;
+  }): Promise<ComputePriceIndexResponse> =>
+    request<ComputePriceIndexResponse>({
       url: `${MARKET_BASE}/indices/compute`,
       method: 'POST',
-      data: { category_id: data.category },
-    });
+      data: {
+        category_id: data.category_id,
+      },
+    }),
 
-    return {
-      id: `index-${Date.now()}`,
-      category: String(response.category_id ?? data.category),
-      region: data.region,
-      index_value: Number(response.new_index ?? 0),
-      base_value: 100,
-      change_percent: Number(response.new_index ?? 0) - 100,
-      period: data.period,
-      created_at: nowIso(),
-    };
-  },
-
-  getAlerts: async (_params?: {
-    type?: string;
-    severity?: string;
-    acknowledged?: boolean;
-    region?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<{ alerts: MarketAlert[]; total: number; page: number; pages: number }> => {
-    const response = await request<Array<{
-      id?: string | number;
-      alert_type?: string;
-      severity?: string;
-      message?: string;
-      recommended_action?: string;
-      acknowledged?: boolean;
-      created_at?: string;
-    }>>({
+  getAlerts: async (params?: {
+    unacknowledged_only?: boolean;
+  }): Promise<MarketAlert[]> => {
+    const response = await request<unknown>({
       url: `${MARKET_BASE}/alerts`,
       method: 'GET',
-      params: { unacknowledged_only: false },
+      params: params?.unacknowledged_only === undefined ? undefined : { unacknowledged_only: params.unacknowledged_only },
     });
 
-    const alerts = Array.isArray(response)
-      ? response.map((alert) => ({
-          id: String(alert.id ?? ''),
-          type: mapAlertType(alert.alert_type),
-          severity: mapSeverity(alert.severity),
-          title: String(alert.alert_type ?? 'Market Alert').replace(/_/g, ' '),
-          message: alert.recommended_action ? `${alert.message ?? ''} ${alert.recommended_action}`.trim() : alert.message ?? '',
-          is_acknowledged: Boolean(alert.acknowledged),
-          created_at: alert.created_at ?? nowIso(),
-        }))
-      : [];
-
-    return {
-      alerts,
-      total: alerts.length,
-      page: 1,
-      pages: alerts.length ? 1 : 0,
-    };
+    return asArray<Record<string, unknown>>(response).map((alert) => ({
+      id: alert.id as string | number,
+      alert_type: asString(alert.alert_type, 'UNKNOWN'),
+      severity: asString(alert.severity, 'LOW'),
+      message: asString(alert.message, ''),
+      recommended_action: alert.recommended_action ? String(alert.recommended_action) : null,
+      acknowledged: Boolean(alert.acknowledged),
+      created_at: asString(alert.created_at, new Date().toISOString()),
+    }));
   },
 
-  acknowledgeAlert: async (alertId: string): Promise<MarketAlert> => {
-    await request<{ id?: string | number; acknowledged?: boolean }>({
+  acknowledgeAlert: async (alertId: string | number): Promise<{ id: string | number; acknowledged: boolean }> =>
+    request<{ id: string | number; acknowledged: boolean }>({
       url: `${MARKET_BASE}/alerts/${alertId}/acknowledge`,
       method: 'POST',
-    });
-
-    return {
-      id: alertId,
-      type: 'PRICE_DROP',
-      severity: 'LOW',
-      title: 'Market Alert',
-      message: 'Alert acknowledged',
-      is_acknowledged: true,
-      created_at: nowIso(),
-    };
-  },
+    }),
 
   getCompetitors: async (region?: string): Promise<CompetitorAnalysis[]> => {
-    const response = await request<CompetitorAnalysis[]>({
+    const response = await request<unknown>({
       url: `${MARKET_BASE}/competitors`,
       method: 'GET',
       params: region ? { region } : undefined,
     });
 
-    return Array.isArray(response) ? response : [];
+    return asArray<Record<string, unknown>>(response).map((competitor) => ({
+      competitor_id: asString(competitor.competitor_id ?? competitor.id),
+      name: asString(competitor.name, 'Unknown'),
+      region: asString(competitor.region, 'Unknown'),
+      total_products: Number(competitor.total_products ?? 0),
+      average_pricing: Number(competitor.average_pricing ?? 0),
+      pricing_strategy: asString(competitor.pricing_strategy, 'COMPETITIVE'),
+      market_share: Number(competitor.market_share ?? 0),
+      strengths: Array.isArray(competitor.strengths) ? (competitor.strengths as string[]) : [],
+      weaknesses: Array.isArray(competitor.weaknesses) ? (competitor.weaknesses as string[]) : [],
+      last_analyzed: asString(competitor.last_analyzed, new Date().toISOString()),
+      price_comparison: Array.isArray(competitor.price_comparison)
+        ? (competitor.price_comparison as Array<Record<string, unknown>>).map((item) => ({
+            category: asString(item.category, ''),
+            competitor_price: Number(item.competitor_price ?? 0),
+            our_price: Number(item.our_price ?? 0),
+            difference: Number(item.difference ?? 0),
+          }))
+        : [],
+    }));
   },
 
-  getCompetitorDetail: async (competitorId: string): Promise<CompetitorAnalysis> => {
-    const response = await request<CompetitorAnalysis>({
+  getCompetitorDetail: async (competitorId: string | number): Promise<CompetitorAnalysis> => {
+    const response = await request<unknown>({
       url: `${MARKET_BASE}/competitors/${competitorId}`,
       method: 'GET',
     });
 
-    return response;
+    const competitor = Array.isArray(response) ? response[0] : response;
+    const record = (competitor && typeof competitor === 'object' ? competitor : {}) as Record<string, unknown>;
+
+    return {
+      competitor_id: asString(record.competitor_id ?? competitorId),
+      name: asString(record.name, 'Unknown'),
+      region: asString(record.region, 'Unknown'),
+      total_products: Number(record.total_products ?? 0),
+      average_pricing: Number(record.average_pricing ?? 0),
+      pricing_strategy: asString(record.pricing_strategy, 'COMPETITIVE'),
+      market_share: Number(record.market_share ?? 0),
+      strengths: Array.isArray(record.strengths) ? (record.strengths as string[]) : [],
+      weaknesses: Array.isArray(record.weaknesses) ? (record.weaknesses as string[]) : [],
+      last_analyzed: asString(record.last_analyzed, new Date().toISOString()),
+      price_comparison: Array.isArray(record.price_comparison)
+        ? (record.price_comparison as Array<Record<string, unknown>>).map((item) => ({
+            category: asString(item.category, ''),
+            competitor_price: Number(item.competitor_price ?? 0),
+            our_price: Number(item.our_price ?? 0),
+            difference: Number(item.difference ?? 0),
+          }))
+        : [],
+    };
   },
 
   getDemandForecasts: async (params?: {
-    product_id?: string;
-    category?: string;
-    region?: string;
-    from_period?: string;
+    product_id?: number | string;
     to_period?: string;
   }): Promise<DemandForecast[]> => {
-    const response = await request<DemandForecast[]>({
+    const response = await request<unknown>({
       url: `${MARKET_BASE}/forecasts`,
       method: 'GET',
-      params,
+      params: {
+        product_id: params?.product_id,
+        to_period: params?.to_period,
+      },
     });
 
-    return Array.isArray(response) ? response : [];
+    return asArray<Record<string, unknown>>(response).map((forecast) => ({
+      product_id: asString(forecast.product_id),
+      product_name: asString(forecast.product_name, 'Unknown'),
+      sku: asString(forecast.sku, ''),
+      current_demand: Number(forecast.current_demand ?? 0),
+      forecast_demand: Number(forecast.forecast_demand ?? 0),
+      forecast_period: asString(forecast.forecast_period, 'next_30_days'),
+      confidence_score: Number(forecast.confidence_score ?? 0),
+      factors: Array.isArray(forecast.factors)
+        ? (forecast.factors as Array<Record<string, unknown>>).map((item) => ({
+            factor: asString(item.factor, ''),
+            impact: Number(item.impact ?? 0),
+            description: asString(item.description, ''),
+          }))
+        : [],
+      recommendations: Array.isArray(forecast.recommendations) ? (forecast.recommendations as string[]) : [],
+      created_at: asString(forecast.created_at, new Date().toISOString()),
+    }));
   },
 
   generateForecast: async (data: {
-    product_id: string;
+    product_id: number | string;
     forecast_period: string;
-    factors?: string[];
-  }): Promise<DemandForecast> => request<DemandForecast>({
-    url: `${MARKET_BASE}/forecasts/generate`,
-    method: 'POST',
-    data: {
-      product_id: data.product_id,
-      forecast_period: data.forecast_period,
-      factors: data.factors ?? [],
-    },
-  }),
-
-  getMarketTrends: async (_params?: {
-    region?: string;
-    category?: string;
-    period?: string;
-  }): Promise<{
-    price_trends: {
-      date: string;
-      average_price: number;
-      index_value: number;
-    }[];
-    demand_trends: {
-      date: string;
-      demand_index: number;
-    }[];
-    competitor_activity: {
-      date: string;
-      new_competitors: number;
-      price_changes: number;
-    }[];
-  }> => ({
-    price_trends: [],
-    demand_trends: [],
-    competitor_activity: [],
-  }),
-
-  getRecommendations: async (params?: {
-    product_id?: string;
-    category?: string;
-    region?: string;
-    type?: 'PRICING' | 'STOCK' | 'MARKETING';
-  }): Promise<MarketRecommendation[]> => {
-    const response = await request<MarketRecommendation[]>({
-      url: `${MARKET_BASE}/recommendations`,
-      method: 'GET',
-      params,
+  }): Promise<DemandForecast> => {
+    const response = await request<unknown>({
+      url: `${MARKET_BASE}/forecasts/generate`,
+      method: 'POST',
+      data: {
+        product_id: data.product_id,
+        forecast_period: data.forecast_period,
+      },
     });
 
-    return Array.isArray(response) ? response : [];
+    const record = (response && typeof response === 'object' ? response : {}) as Record<string, unknown>;
+    return {
+      product_id: asString(record.product_id ?? data.product_id),
+      product_name: asString(record.product_name, 'Unknown'),
+      sku: asString(record.sku, ''),
+      current_demand: Number(record.current_demand ?? 0),
+      forecast_demand: Number(record.forecast_demand ?? 0),
+      forecast_period: asString(record.forecast_period, data.forecast_period),
+      confidence_score: Number(record.confidence_score ?? 0),
+      factors: Array.isArray(record.factors)
+        ? (record.factors as Array<Record<string, unknown>>).map((item) => ({
+            factor: asString(item.factor, ''),
+            impact: Number(item.impact ?? 0),
+            description: asString(item.description, ''),
+          }))
+        : [],
+      recommendations: Array.isArray(record.recommendations) ? (record.recommendations as string[]) : [],
+      created_at: asString(record.created_at, new Date().toISOString()),
+    };
   },
 
-  exportSignals: async (_params?: {
-    format?: 'csv' | 'excel' | 'json';
-    from_date?: string;
-    to_date?: string;
-    product_ids?: string[];
-  }): Promise<Blob> => {
-    const data = await marketIntelligenceApi.getPriceSignals();
-    return makeJsonBlob(data.signals);
-  },
+  getRecommendations: async (): Promise<MarketRecommendation[]> => {
+    const response = await request<unknown>({
+      url: `${MARKET_BASE}/recommendations`,
+      method: 'GET',
+    });
 
-  exportForecasts: async (_params?: {
-    format?: 'csv' | 'excel' | 'json';
-    period?: string;
-    product_ids?: string[];
-  }): Promise<Blob> => {
-    const data = await marketIntelligenceApi.getDemandForecasts();
-    return makeJsonBlob(data);
+    return asArray<Record<string, unknown>>(response).map((recommendation) => ({
+      id: asString(recommendation.id),
+      type: asString(recommendation.type, 'PRICING'),
+      priority: asString(recommendation.priority, 'MEDIUM'),
+      title: asString(recommendation.title, ''),
+      description: asString(recommendation.description, ''),
+      expected_impact: asString(recommendation.expected_impact, ''),
+      effort_required: asString(recommendation.effort_required, 'MEDIUM'),
+      due_date: recommendation.due_date ? String(recommendation.due_date) : null,
+      status: asString(recommendation.status, 'PENDING'),
+      created_at: asString(recommendation.created_at, new Date().toISOString()),
+    }));
   },
 };

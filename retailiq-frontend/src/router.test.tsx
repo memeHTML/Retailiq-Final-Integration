@@ -39,6 +39,10 @@ vi.mock('@/pages/Team', () => ({ default: page('Team') }));
 vi.mock('@/pages/Ops', () => ({ default: page('Maintenance') }));
 vi.mock('@/pages/I18n', () => ({ default: page('Internationalization') }));
 vi.mock('@/pages/FinancialCalendar', () => ({ default: page('Financial Calendar') }));
+vi.mock('@/features/analytics/StaffPerformancePage', () => ({ default: page('Staff') }));
+vi.mock('@/features/pricing/PricingPage', () => ({ default: page('Pricing') }));
+vi.mock('@/features/ai/DecisionsPage', () => ({ default: page('Decisions') }));
+vi.mock('@/features/analytics/MarketIntelligencePage', () => ({ default: page('Market Intelligence') }));
 vi.mock('@/pages/Operations', () => ({ default: page('Operations hub') }));
 
 const mockedAuthStore = authStore as unknown as { getState: () => { isAuthenticated: boolean; role: 'owner' | 'staff' } };
@@ -78,6 +82,10 @@ describe('router operations redirects', () => {
     ['/ops', '/operations/maintenance', 'Maintenance page /operations/maintenance'],
     ['/i18n', '/settings/i18n', 'Internationalization page /settings/i18n'],
     ['/events', '/financial-calendar', 'Financial Calendar page /financial-calendar'],
+    ['/analytics/staff', '/staff-performance', 'Staff page /staff-performance'],
+    ['/inventory/pricing', '/pricing', 'Pricing page /pricing'],
+    ['/ai/decisions', '/decisions', 'Decisions page /decisions'],
+    ['/analytics/market', '/market-intelligence', 'Market Intelligence page /market-intelligence'],
   ])('redirects %s to %s', async (initialEntry, canonicalPath, pageText) => {
     renderRouter(initialEntry);
 
@@ -92,6 +100,10 @@ describe('router operations redirects', () => {
     ['/operations/maintenance', 'Maintenance page /operations/maintenance'],
     ['/settings/i18n', 'Internationalization page /settings/i18n'],
     ['/financial-calendar', 'Financial Calendar page /financial-calendar'],
+    ['/staff-performance', 'Staff page /staff-performance'],
+    ['/pricing', 'Pricing page /pricing'],
+    ['/decisions', 'Decisions page /decisions'],
+    ['/market-intelligence', 'Market Intelligence page /market-intelligence'],
   ])('renders %s once authenticated', async (initialEntry, pageText) => {
     renderRouter(initialEntry);
 
@@ -128,5 +140,19 @@ describe('router operations redirects', () => {
 
     expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
     expect(screen.queryAllByText('Financial Calendar page /financial-calendar').length).toBe(0);
+  });
+
+  it.each([
+    ['/analytics/staff', 'Staff page /staff-performance'],
+    ['/inventory/pricing', 'Pricing page /pricing'],
+    ['/ai/decisions', 'Decisions page /decisions'],
+    ['/analytics/market', 'Market Intelligence page /market-intelligence'],
+  ])('blocks %s when unauthenticated', async (initialEntry, canonicalPageText) => {
+    mockedAuthStore.getState().isAuthenticated = false;
+    renderRouter(initialEntry);
+
+    expect((await screen.findAllByText('Login page /login')).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(canonicalPageText).length).toBe(0);
+    expect(screen.queryAllByText(/\/(staff-performance|pricing|decisions|market-intelligence)$/).length).toBe(0);
   });
 });

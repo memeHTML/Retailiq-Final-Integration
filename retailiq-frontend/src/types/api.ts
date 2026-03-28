@@ -36,7 +36,7 @@ import type {
   OcrJob,
   OfflineSnapshot,
   PriceHistoryEntry,
-  PricingRules,
+  PricingRule,
   PricingSuggestion,
   PrintJob,
   Product,
@@ -846,20 +846,29 @@ export interface UpsertStaffTargetResponse {
 export type ListPricingSuggestionsResponse = PricingSuggestion[];
 
 export interface ApplyPricingSuggestionResponse {
-  message: string;
+  suggestion_id: number;
+  product_id: number;
+  old_price: number | null;
+  new_price: number;
+  status: 'APPLIED';
 }
 
 export interface DismissPricingSuggestionResponse {
-  message: string;
+  suggestion_id: number;
+  status: 'DISMISSED';
 }
 
 export type GetPriceHistoryResponse = PriceHistoryEntry[];
 
-export type GetPricingRulesResponse = PricingRules;
+export type GetPricingRulesResponse = PricingRule[];
 
-export type UpdatePricingRulesRequest = PricingRules;
+export interface UpdatePricingRulesRequest {
+  rule_type: string;
+  parameters: Record<string, unknown>;
+  is_active?: boolean;
+}
 
-export type UpdatePricingRulesResponse = PricingRules;
+export type UpdatePricingRulesResponse = PricingRule;
 
 // ── AI Decisions ─────────────────────────────────────────────
 export interface GetDecisionsResponse {

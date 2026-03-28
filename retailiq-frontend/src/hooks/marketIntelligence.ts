@@ -1,201 +1,123 @@
 /**
  * src/hooks/marketIntelligence.ts
- * React Query hooks for Market Intelligence operations
+ * React Query hooks for market intelligence operations.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as marketIntelligenceApi from '@/api/marketIntelligence';
+import { marketIntelligenceApi } from '@/api/marketIntelligence';
 
-
-// Query keys
 export const marketIntelligenceKeys = {
   all: ['marketIntelligence'] as const,
-  summary: (region?: string) => [...marketIntelligenceKeys.all, 'summary', ...(region ? [region] : [])] as const,
-  signals: (params?: Record<string, unknown>) => [...marketIntelligenceKeys.all, 'signals', ...(params ? [params] : [])] as const,
-  indices: (params?: Record<string, unknown>) => [...marketIntelligenceKeys.all, 'indices', ...(params ? [params] : [])] as const,
-  alerts: (params?: Record<string, unknown>) => [...marketIntelligenceKeys.all, 'alerts', ...(params ? [params] : [])] as const,
-  competitors: (region?: string) => [...marketIntelligenceKeys.all, 'competitors', ...(region ? [region] : [])] as const,
-  competitor: (id: string) => [...marketIntelligenceKeys.all, 'competitor', id] as const,
-  forecasts: (params?: Record<string, unknown>) => [...marketIntelligenceKeys.all, 'forecasts', ...(params ? [params] : [])] as const,
-  trends: (params?: Record<string, unknown>) => [...marketIntelligenceKeys.all, 'trends', ...(params ? [params] : [])] as const,
-  recommendations: (params?: Record<string, unknown>) => [...marketIntelligenceKeys.all, 'recommendations', ...(params ? [params] : [])] as const,
+  summary: () => [...marketIntelligenceKeys.all, 'summary'] as const,
+  signals: (params?: { category_id?: number | string; signal_type?: string; limit?: number }) =>
+    [...marketIntelligenceKeys.all, 'signals', params ?? {}] as const,
+  indices: (params?: { category_id?: number | string; days?: number }) =>
+    [...marketIntelligenceKeys.all, 'indices', params ?? {}] as const,
+  alerts: (params?: { unacknowledged_only?: boolean }) => [...marketIntelligenceKeys.all, 'alerts', params ?? {}] as const,
+  competitors: (region?: string) => [...marketIntelligenceKeys.all, 'competitors', region ?? 'all'] as const,
+  competitor: (id: string | number) => [...marketIntelligenceKeys.all, 'competitor', id] as const,
+  forecasts: (params?: { product_id?: number | string; to_period?: string }) =>
+    [...marketIntelligenceKeys.all, 'forecasts', params ?? {}] as const,
+  recommendations: () => [...marketIntelligenceKeys.all, 'recommendations'] as const,
 };
 
-// Market Summary
-export const useMarketSummaryQuery = (region?: string) => {
-  return useQuery({
-    queryKey: marketIntelligenceKeys.summary(region),
-    queryFn: () => marketIntelligenceApi.marketIntelligenceApi.getMarketSummary(region),
-    staleTime: 300000, // 5 minutes
+export const useMarketSummaryQuery = () =>
+  useQuery({
+    queryKey: marketIntelligenceKeys.summary(),
+    queryFn: () => marketIntelligenceApi.getMarketSummary(),
+    staleTime: 5 * 60 * 1000,
   });
-};
 
-// Price Signals
 export const usePriceSignalsQuery = (params?: {
-  product_id?: string;
-  category?: string;
-  region?: string;
-  trend?: 'UP' | 'DOWN' | 'STABLE';
-  page?: number;
+  category_id?: number | string;
+  signal_type?: string;
   limit?: number;
-}) => {
-  return useQuery({
+}) =>
+  useQuery({
     queryKey: marketIntelligenceKeys.signals(params),
-    queryFn: () => marketIntelligenceApi.marketIntelligenceApi.getPriceSignals(params),
-    staleTime: 60000, // 1 minute
+    queryFn: () => marketIntelligenceApi.getPriceSignals(params),
+    staleTime: 60 * 1000,
   });
-};
 
-// Price Indices
 export const usePriceIndicesQuery = (params?: {
-  category?: string;
-  region?: string;
-  from_period?: string;
-  to_period?: string;
-}) => {
-  return useQuery({
+  category_id?: number | string;
+  days?: number;
+}) =>
+  useQuery({
     queryKey: marketIntelligenceKeys.indices(params),
-    queryFn: () => marketIntelligenceApi.marketIntelligenceApi.getPriceIndices(params),
-    staleTime: 300000, // 5 minutes
+    queryFn: () => marketIntelligenceApi.getPriceIndices(params),
+    staleTime: 5 * 60 * 1000,
   });
-};
 
 export const useComputePriceIndexMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (data: {
-      category: string;
-      region: string;
-      period: string;
-      product_ids: string[];
-    }) => marketIntelligenceApi.marketIntelligenceApi.computePriceIndex(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: marketIntelligenceKeys.indices() });
+    mutationFn: (data: { category_id: number | string }) => marketIntelligenceApi.computePriceIndex(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: marketIntelligenceKeys.indices() });
     },
   });
 };
 
-// Alerts
-export const useMarketAlertsQuery = (params?: {
-  type?: string;
-  severity?: string;
-  acknowledged?: boolean;
-  region?: string;
-  page?: number;
-  limit?: number;
-}) => {
-  return useQuery({
+export const useMarketAlertsQuery = (params?: { unacknowledged_only?: boolean }) =>
+  useQuery({
     queryKey: marketIntelligenceKeys.alerts(params),
-    queryFn: () => marketIntelligenceApi.marketIntelligenceApi.getAlerts(params),
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute
+    queryFn: () => marketIntelligenceApi.getAlerts(params),
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
   });
-};
 
 export const useAcknowledgeAlertMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (alertId: string) => marketIntelligenceApi.marketIntelligenceApi.acknowledgeAlert(alertId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: marketIntelligenceKeys.alerts() });
+    mutationFn: (alertId: string | number) => marketIntelligenceApi.acknowledgeAlert(alertId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: marketIntelligenceKeys.alerts() });
     },
   });
 };
 
-// Competitor Analysis
-export const useCompetitorsQuery = (region?: string) => {
-  return useQuery({
+export const useCompetitorsQuery = (region?: string) =>
+  useQuery({
     queryKey: marketIntelligenceKeys.competitors(region),
-    queryFn: () => marketIntelligenceApi.marketIntelligenceApi.getCompetitors(region),
-    staleTime: 600000, // 10 minutes
+    queryFn: () => marketIntelligenceApi.getCompetitors(region),
+    staleTime: 10 * 60 * 1000,
   });
-};
 
-export const useCompetitorDetailQuery = (competitorId: string) => {
-  return useQuery({
+export const useCompetitorDetailQuery = (competitorId: string | number) =>
+  useQuery({
     queryKey: marketIntelligenceKeys.competitor(competitorId),
-    queryFn: () => marketIntelligenceApi.marketIntelligenceApi.getCompetitorDetail(competitorId),
+    queryFn: () => marketIntelligenceApi.getCompetitorDetail(competitorId),
     enabled: Boolean(competitorId),
-    staleTime: 300000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
-};
 
-// Demand Forecasting
 export const useDemandForecastsQuery = (params?: {
-  product_id?: string;
-  category?: string;
-  region?: string;
-  from_period?: string;
+  product_id?: number | string;
   to_period?: string;
-}) => {
-  return useQuery({
+}) =>
+  useQuery({
     queryKey: marketIntelligenceKeys.forecasts(params),
-    queryFn: () => marketIntelligenceApi.marketIntelligenceApi.getDemandForecasts(params),
-    staleTime: 300000, // 5 minutes
+    queryFn: () => marketIntelligenceApi.getDemandForecasts(params),
+    staleTime: 5 * 60 * 1000,
   });
-};
 
 export const useGenerateForecastMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (data: {
-      product_id: string;
-      forecast_period: string;
-      factors?: string[];
-    }) => marketIntelligenceApi.marketIntelligenceApi.generateForecast(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: marketIntelligenceKeys.forecasts() });
+    mutationFn: (data: { product_id: number | string; forecast_period: string }) =>
+      marketIntelligenceApi.generateForecast(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: marketIntelligenceKeys.forecasts() });
     },
   });
 };
 
-// Market Trends
-export const useMarketTrendsQuery = (params?: {
-  region?: string;
-  category?: string;
-  period?: string;
-}) => {
-  return useQuery({
-    queryKey: marketIntelligenceKeys.trends(params),
-    queryFn: () => marketIntelligenceApi.marketIntelligenceApi.getMarketTrends(params),
-    staleTime: 300000, // 5 minutes
+export const useRecommendationsQuery = () =>
+  useQuery({
+    queryKey: marketIntelligenceKeys.recommendations(),
+    queryFn: () => marketIntelligenceApi.getRecommendations(),
+    staleTime: 10 * 60 * 1000,
   });
-};
-
-// Recommendations
-export const useRecommendationsQuery = (params?: {
-  product_id?: string;
-  category?: string;
-  region?: string;
-  type?: 'PRICING' | 'STOCK' | 'MARKETING';
-}) => {
-  return useQuery({
-    queryKey: marketIntelligenceKeys.recommendations(params),
-    queryFn: () => marketIntelligenceApi.marketIntelligenceApi.getRecommendations(params),
-    staleTime: 600000, // 10 minutes
-  });
-};
-
-// Export Data
-export const useExportSignalsMutation = () => {
-  return useMutation({
-    mutationFn: (params?: {
-      format?: 'csv' | 'excel' | 'json';
-      from_date?: string;
-      to_date?: string;
-      product_ids?: string[];
-    }) => marketIntelligenceApi.marketIntelligenceApi.exportSignals(params),
-  });
-};
-
-export const useExportForecastsMutation = () => {
-  return useMutation({
-    mutationFn: (params?: {
-      format?: 'csv' | 'excel' | 'json';
-      period?: string;
-      product_ids?: string[];
-    }) => marketIntelligenceApi.marketIntelligenceApi.exportForecasts(params),
-  });
-};

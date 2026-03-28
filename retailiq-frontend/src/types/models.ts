@@ -330,25 +330,35 @@ export interface PricingSuggestion {
   product_name: string;
   current_price: number;
   suggested_price: number;
+  price_change_pct: number | null;
+  suggestion_type: string;
   reason: string;
-  confidence: number;
-  margin_delta: number;
+  confidence: number | null;
+  confidence_score: number | null;
+  current_margin_pct: number | null;
+  suggested_margin_pct: number | null;
+  status: string;
   created_at: string;
 }
 
 export interface PriceHistoryEntry {
   id: number;
+  product_id: number;
+  store_id: number;
   old_price: number;
   new_price: number;
+  reason: string | null;
   changed_at: string;
-  source: string;
+  changed_by: number | null;
 }
 
-export interface PricingRules {
-  min_margin_pct: number;
-  max_discount_pct: number;
-  competitor_match: boolean;
-  auto_apply_threshold: number;
+export interface PricingRule {
+  id: number;
+  store_id: number;
+  rule_type: string;
+  parameters: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
 }
 
 export interface Decision {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +8,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { useAiPricingOptimizeMutation } from '@/hooks/aiTools';
 import {
@@ -20,7 +21,41 @@ import {
 } from '@/hooks/pricing';
 import { uiStore } from '@/stores/uiStore';
 import { normalizeApiError } from '@/utils/errors';
-import type { PriceHistoryEntry, PricingSuggestion } from '@/types/models';
+import type { PriceHistoryEntry, PricingRule, PricingSuggestion } from '@/types/models';
+
+const formatPercent = (value: number | string | null | undefined) => {
+  if (value == null || value === '') {
+    return '-';
+  }
+
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) {
+    return '-';
+  }
+
+  const sign = numeric > 0 ? '+' : '';
+  return `${sign}${numeric.toFixed(2)}%`;
+};
+
+const confidenceLabel = (suggestion: PricingSuggestion) => {
+  const value = suggestion.confidence_score ?? suggestion.confidence;
+  if (value == null) {
+    return '-';
+  }
+
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) {
+    return '-';
+  }
+
+  return `${Math.round(numeric * 100)}%`;
+};
+
+const suggestionVariant = (suggestionType: string) => {
+  if (suggestionType === 'RAISE') return 'success' as const;
+  if (suggestionType === 'LOWER') return 'warning' as const;
+  return 'secondary' as const;
+};
 
 export default function PricingPage() {
   const addToast = uiStore((state) => state.addToast);
@@ -36,28 +71,16 @@ export default function PricingPage() {
   const [historyProductId, setHistoryProductId] = useState('');
   const [optimizeProductIds, setOptimizeProductIds] = useState('');
   const [optimizeResult, setOptimizeResult] = useState<unknown>(null);
-  const [rulesForm, setRulesForm] = useState({
-    min_margin_pct: '',
-    max_discount_pct: '',
-    competitor_match: false,
-    auto_apply_threshold: '',
+  const [ruleForm, setRuleForm] = useState({
+    rule_type: '',
+    parametersJson: '{}',
+    is_active: true,
   });
+  const [ruleFormError, setRuleFormError] = useState<string | null>(null);
 
   const historyQuery = usePriceHistoryQuery(historyProductId ? Number(historyProductId) : 0);
   const suggestions = Array.isArray(suggestionsQuery.data) ? suggestionsQuery.data : [];
-
-  useEffect(() => {
-    if (!rulesQuery.data) {
-      return;
-    }
-
-    setRulesForm({
-      min_margin_pct: String(rulesQuery.data.min_margin_pct),
-      max_discount_pct: String(rulesQuery.data.max_discount_pct),
-      competitor_match: rulesQuery.data.competitor_match,
-      auto_apply_threshold: String(rulesQuery.data.auto_apply_threshold),
-    });
-  }, [rulesQuery.data]);
+  const pricingRules: PricingRule[] = Array.isArray(rulesQuery.data) ? rulesQuery.data : [];
 
   if (suggestionsQuery.isError) {
     return (
@@ -86,15 +109,52 @@ export default function PricingPage() {
     }
   };
 
+  const onSelectRule = (rule: PricingRule) => {
+    setRuleFormError(null);
+    setRuleForm({
+      rule_type: rule.rule_type,
+      parametersJson: JSON.stringify(rule.parameters ?? {}, null, 2),
+      is_active: rule.is_active,
+    });
+  };
+
+  const onNewRule = () => {
+    setRuleFormError(null);
+    setRuleForm({
+      rule_type: '',
+      parametersJson: '{}',
+      is_active: true,
+    });
+  };
+
   const onSaveRules = async () => {
+    const ruleType = ruleForm.rule_type.trim();
+    if (!ruleType) {
+      setRuleFormError('Rule type is required.');
+      return;
+    }
+
+    let parameters: Record<string, unknown>;
+
+    try {
+      const parsed = JSON.parse(ruleForm.parametersJson || '{}') as unknown;
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Parameters must be a JSON object.');
+      }
+      parameters = parsed as Record<string, unknown>;
+    } catch (error) {
+      setRuleFormError(error instanceof Error ? error.message : 'Parameters must be valid JSON.');
+      return;
+    }
+
     try {
       await updateRulesMutation.mutateAsync({
-        min_margin_pct: Number(rulesForm.min_margin_pct),
-        max_discount_pct: Number(rulesForm.max_discount_pct),
-        competitor_match: rulesForm.competitor_match,
-        auto_apply_threshold: Number(rulesForm.auto_apply_threshold),
+        rule_type: ruleType,
+        parameters,
+        is_active: ruleForm.is_active,
       });
-      addToast({ title: 'Rules saved', message: 'Pricing rules were updated successfully.', variant: 'success' });
+      setRuleFormError(null);
+      addToast({ title: 'Rule saved', message: 'Pricing rule was updated successfully.', variant: 'success' });
     } catch (error) {
       addToast({ title: 'Rule update failed', message: normalizeApiError(error).message, variant: 'error' });
     }
@@ -143,18 +203,34 @@ export default function PricingPage() {
             <DataTable<PricingSuggestion>
               columns={[
                 { key: 'product_name', header: 'Product', render: (row) => row.product_name },
-                { key: 'current_price', header: 'Current', render: (row) => `Rs ${row.current_price}` },
-                { key: 'suggested_price', header: 'Suggested', render: (row) => `Rs ${row.suggested_price}` },
+                { key: 'current_price', header: 'Current', render: (row) => `Rs ${Number(row.current_price).toLocaleString()}` },
+                { key: 'suggested_price', header: 'Suggested', render: (row) => `Rs ${Number(row.suggested_price).toLocaleString()}` },
                 {
-                  key: 'margin_delta',
-                  header: 'Margin Delta',
-                  render: (row) => (
-                    <Badge variant={row.margin_delta >= 0 ? 'success' : 'danger'}>
-                      {row.margin_delta >= 0 ? '+' : ''}{row.margin_delta.toFixed(2)}%
-                    </Badge>
-                  ),
+                  key: 'price_change_pct',
+                  header: 'Change',
+                  render: (row) => <Badge variant={row.price_change_pct == null ? 'secondary' : row.price_change_pct >= 0 ? 'success' : 'warning'}>{formatPercent(row.price_change_pct)}</Badge>,
                 },
-                { key: 'confidence', header: 'Confidence', render: (row) => `${Math.round(row.confidence * 100)}%` },
+                {
+                  key: 'suggestion_type',
+                  header: 'Type',
+                  render: (row) => <Badge variant={suggestionVariant(row.suggestion_type)}>{row.suggestion_type}</Badge>,
+                },
+                { key: 'confidence', header: 'Confidence', render: (row) => confidenceLabel(row) },
+                {
+                  key: 'current_margin_pct',
+                  header: 'Current Margin',
+                  render: (row) => formatPercent(row.current_margin_pct),
+                },
+                {
+                  key: 'suggested_margin_pct',
+                  header: 'Suggested Margin',
+                  render: (row) => formatPercent(row.suggested_margin_pct),
+                },
+                {
+                  key: 'status',
+                  header: 'Status',
+                  render: (row) => <Badge variant={row.status === 'PENDING' ? 'warning' : 'secondary'}>{row.status}</Badge>,
+                },
                 { key: 'reason', header: 'Reason', render: (row) => row.reason },
                 {
                   key: 'actions',
@@ -183,22 +259,96 @@ export default function PricingPage() {
               ) : rulesQuery.isError ? (
                 <ErrorState error={normalizeApiError(rulesQuery.error)} onRetry={() => void rulesQuery.refetch()} />
               ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input label="Minimum margin %" type="number" value={rulesForm.min_margin_pct} onChange={(event) => setRulesForm((current) => ({ ...current, min_margin_pct: event.target.value }))} />
-                  <Input label="Maximum discount %" type="number" value={rulesForm.max_discount_pct} onChange={(event) => setRulesForm((current) => ({ ...current, max_discount_pct: event.target.value }))} />
-                  <Input label="Auto-apply threshold" type="number" value={rulesForm.auto_apply_threshold} onChange={(event) => setRulesForm((current) => ({ ...current, auto_apply_threshold: event.target.value }))} />
-                  <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={rulesForm.competitor_match}
-                      onChange={(event) => setRulesForm((current) => ({ ...current, competitor_match: event.target.checked }))}
-                    />
-                    Match competitor pricing
-                  </label>
-                  <div className="md:col-span-2">
-                    <Button onClick={() => void onSaveRules()} loading={updateRulesMutation.isPending}>
-                      Save rules
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button variant="secondary" onClick={onNewRule}>
+                      New rule
                     </Button>
+                    <span className="text-sm text-gray-500">
+                      Rules are upserted by `rule_type` with backend-managed `parameters` and `is_active`.
+                    </span>
+                  </div>
+
+                  <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                    {pricingRules.length === 0 ? (
+                      <EmptyState
+                        title="No pricing rules"
+                        body="The backend returned no rules for this store. Use the form to upsert a rule."
+                      />
+                    ) : (
+                      <DataTable<PricingRule>
+                        columns={[
+                          { key: 'rule_type', header: 'Rule Type', render: (row) => row.rule_type },
+                          {
+                            key: 'parameters',
+                            header: 'Parameters',
+                            render: (row) => (
+                              <pre className="max-w-[30rem] whitespace-pre-wrap break-words text-xs text-gray-600">
+                                {JSON.stringify(row.parameters, null, 2)}
+                              </pre>
+                            ),
+                          },
+                          {
+                            key: 'is_active',
+                            header: 'Status',
+                            render: (row) => <Badge variant={row.is_active ? 'success' : 'secondary'}>{row.is_active ? 'Active' : 'Inactive'}</Badge>,
+                          },
+                          {
+                            key: 'created_at',
+                            header: 'Created',
+                            render: (row) => row.created_at,
+                          },
+                          {
+                            key: 'actions',
+                            header: 'Actions',
+                            render: (row) => (
+                              <Button size="sm" variant="secondary" onClick={() => onSelectRule(row)}>
+                                Edit
+                              </Button>
+                            ),
+                          },
+                        ]}
+                        data={pricingRules}
+                        emptyMessage="No pricing rules returned by the backend."
+                      />
+                    )}
+
+                    <Card className="border border-gray-200">
+                      <CardHeader>
+                        <CardTitle>{ruleForm.rule_type ? `Edit ${ruleForm.rule_type}` : 'Upsert rule'}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <Input
+                          label="Rule type"
+                          value={ruleForm.rule_type}
+                          onChange={(event) => setRuleForm((current) => ({ ...current, rule_type: event.target.value }))}
+                          placeholder="e.g. margin_based"
+                        />
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">Parameters JSON</label>
+                          <Textarea
+                            value={ruleForm.parametersJson}
+                            onChange={(event) => setRuleForm((current) => ({ ...current, parametersJson: event.target.value }))}
+                            rows={10}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Enter a JSON object. The backend stores this as the rule parameters payload.
+                        </p>
+                        <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={ruleForm.is_active}
+                            onChange={(event) => setRuleForm((current) => ({ ...current, is_active: event.target.checked }))}
+                          />
+                          Active
+                        </label>
+                        {ruleFormError ? <p className="text-sm text-red-600">{ruleFormError}</p> : null}
+                          <Button onClick={() => void onSaveRules()} loading={updateRulesMutation.isPending}>
+                            Save rule
+                          </Button>
+                        </CardContent>
+                      </Card>
                   </div>
                 </div>
               )}
@@ -225,9 +375,10 @@ export default function PricingPage() {
                 <DataTable<PriceHistoryEntry>
                   columns={[
                     { key: 'changed_at', header: 'Changed At', render: (row) => row.changed_at },
-                    { key: 'old_price', header: 'Old Price', render: (row) => `Rs ${row.old_price}` },
-                    { key: 'new_price', header: 'New Price', render: (row) => `Rs ${row.new_price}` },
-                    { key: 'source', header: 'Source', render: (row) => row.source || '-' },
+                    { key: 'old_price', header: 'Old Price', render: (row) => (row.old_price == null ? '-' : `Rs ${row.old_price.toLocaleString()}`) },
+                    { key: 'new_price', header: 'New Price', render: (row) => (row.new_price == null ? '-' : `Rs ${row.new_price.toLocaleString()}`) },
+                    { key: 'reason', header: 'Reason', render: (row) => row.reason || '-' },
+                    { key: 'changed_by', header: 'Changed By', render: (row) => (row.changed_by == null ? '-' : String(row.changed_by)) },
                   ]}
                   data={historyQuery.data ?? []}
                   emptyMessage="No price history exists for this product."

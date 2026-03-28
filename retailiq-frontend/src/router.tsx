@@ -88,6 +88,10 @@ export const appRoutes = [
   { path: routes.opsLegacy, element: <Navigate to={routes.ops} replace /> },
   { path: routes.i18n, element: <Navigate to={routes.settingsI18n} replace /> },
   { path: routes.events, element: <Navigate to={routes.financialCalendar} replace /> },
+  { path: routes.analyticsStaff, element: <Navigate to={routes.staff} replace /> },
+  { path: routes.inventoryPricing, element: <Navigate to={routes.pricing} replace /> },
+  { path: routes.aiDecisions, element: <Navigate to={routes.decisions} replace /> },
+  { path: routes.analyticsMarket, element: <Navigate to={routes.marketIntelligence} replace /> },
   {
     element: <Outlet />,
     children: [
