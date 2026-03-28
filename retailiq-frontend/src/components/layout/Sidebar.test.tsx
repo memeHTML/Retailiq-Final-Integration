@@ -24,6 +24,7 @@ vi.mock('@/stores/authStore', () => ({
 describe('Sidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (authState as { role: 'owner' | 'staff' }).role = 'owner';
   });
 
   it('shows canonical settings and calendar destinations', () => {
@@ -35,5 +36,7 @@ describe('Sidebar', () => {
 
     expect(screen.getByRole('link', { name: /financial calendar/i }).getAttribute('href')).toBe('/financial-calendar');
     expect(screen.getByRole('link', { name: /internationalization/i }).getAttribute('href')).toBe('/settings/i18n');
+    expect(screen.getByRole('link', { name: /^Orders$/i }).getAttribute('href')).toBe('/orders');
+    expect(screen.getByRole('link', { name: /^Omnichannel$/i }).getAttribute('href')).toBe('/omnichannel');
   });
 });

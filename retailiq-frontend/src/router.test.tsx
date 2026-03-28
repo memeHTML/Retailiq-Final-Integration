@@ -39,6 +39,8 @@ vi.mock('@/pages/Team', () => ({ default: page('Team') }));
 vi.mock('@/pages/Ops', () => ({ default: page('Maintenance') }));
 vi.mock('@/pages/I18n', () => ({ default: page('Internationalization') }));
 vi.mock('@/pages/FinancialCalendar', () => ({ default: page('Financial Calendar') }));
+vi.mock('@/features/orders/OrdersPage', () => ({ default: page('Orders') }));
+vi.mock('@/features/omnichannel/OmnichannelPage', () => ({ default: page('Omnichannel') }));
 vi.mock('@/features/analytics/StaffPerformancePage', () => ({ default: page('Staff') }));
 vi.mock('@/features/pricing/PricingPage', () => ({ default: page('Pricing') }));
 vi.mock('@/features/ai/DecisionsPage', () => ({ default: page('Decisions') }));
@@ -82,6 +84,8 @@ describe('router operations redirects', () => {
     ['/ops', '/operations/maintenance', 'Maintenance page /operations/maintenance'],
     ['/i18n', '/settings/i18n', 'Internationalization page /settings/i18n'],
     ['/events', '/financial-calendar', 'Financial Calendar page /financial-calendar'],
+    ['/orders', '/orders', 'Orders page /orders'],
+    ['/omnichannel', '/omnichannel', 'Omnichannel page /omnichannel'],
     ['/analytics/staff', '/staff-performance', 'Staff page /staff-performance'],
     ['/inventory/pricing', '/pricing', 'Pricing page /pricing'],
     ['/ai/decisions', '/decisions', 'Decisions page /decisions'],
@@ -100,6 +104,8 @@ describe('router operations redirects', () => {
     ['/operations/maintenance', 'Maintenance page /operations/maintenance'],
     ['/settings/i18n', 'Internationalization page /settings/i18n'],
     ['/financial-calendar', 'Financial Calendar page /financial-calendar'],
+    ['/orders', 'Orders page /orders'],
+    ['/omnichannel', 'Omnichannel page /omnichannel'],
     ['/staff-performance', 'Staff page /staff-performance'],
     ['/pricing', 'Pricing page /pricing'],
     ['/decisions', 'Decisions page /decisions'],
@@ -147,6 +153,8 @@ describe('router operations redirects', () => {
     ['/inventory/pricing', 'Pricing page /pricing'],
     ['/ai/decisions', 'Decisions page /decisions'],
     ['/analytics/market', 'Market Intelligence page /market-intelligence'],
+    ['/orders', 'Orders page /orders'],
+    ['/omnichannel', 'Omnichannel page /omnichannel'],
   ])('blocks %s when unauthenticated', async (initialEntry, canonicalPageText) => {
     mockedAuthStore.getState().isAuthenticated = false;
     renderRouter(initialEntry);

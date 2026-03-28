@@ -89,6 +89,13 @@ describe('Header', () => {
   });
 
   it.each([
+    ['/inventory/receipts', 'Receipts'],
+    ['/inventory/barcodes', 'Barcodes'],
+    ['/inventory/vision', 'Vision OCR'],
+    ['/finance/gst', 'GST / Tax'],
+    ['/finance/einvoice', 'E-Invoicing'],
+    ['/orders', 'Orders'],
+    ['/omnichannel', 'Omnichannel'],
     ['/operations/developer', 'Developer'],
     ['/operations/kyc', 'KYC'],
     ['/operations/team', 'Team'],

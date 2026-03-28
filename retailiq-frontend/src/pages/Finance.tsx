@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -280,6 +281,25 @@ export default function FinancePage() {
 
   return (
     <PageFrame title="Finance" subtitle="Merchant finance actions backed by live `/api/v2/finance` endpoints.">
+      <div className="grid gap-4 md:grid-cols-2 mb-6">
+        <Card className="transition-shadow hover:shadow-md">
+          <CardContent className="space-y-2 p-5">
+            <div className="text-sm uppercase tracking-wide text-gray-500">Quick Links</div>
+            <div className="text-lg font-semibold">GST & Tax</div>
+            <p className="text-sm text-gray-500">Open GST configuration, filing helpers, and tax calculator tools.</p>
+            <Link className="button button--secondary" to="/finance/gst">Open GST & Tax</Link>
+          </CardContent>
+        </Card>
+        <Card className="transition-shadow hover:shadow-md">
+          <CardContent className="space-y-2 p-5">
+            <div className="text-sm uppercase tracking-wide text-gray-500">Quick Links</div>
+            <div className="text-lg font-semibold">E-Invoicing</div>
+            <p className="text-sm text-gray-500">Review invoice compliance, IRN status, and QR code outputs.</p>
+            <Link className="button button--secondary" to="/finance/einvoice">Open E-Invoicing</Link>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex flex-wrap gap-6">
           {(['overview', 'kyc', 'credit', 'loans', 'treasury'] as FinanceTab[]).map((tab) => (

@@ -25,6 +25,8 @@ describe('route registry', () => {
     expect(routes.receiptsQueue).toBe('/receipts/queue');
     expect(routes.visionOcr).toBe('/vision/ocr');
     expect(routes.marketplace).toBe('/orders/marketplace');
+    expect(routes.orders).toBe('/orders');
+    expect(routes.omnichannel).toBe('/omnichannel');
     expect(routes.chain).toBe('/operations/chain');
     expect(routes.storeProfile).toBe('/store/profile');
     expect(routes.financialCalendar).toBe('/financial-calendar');

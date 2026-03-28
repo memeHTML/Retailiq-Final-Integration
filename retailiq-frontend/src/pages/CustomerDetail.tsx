@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
@@ -17,11 +17,31 @@ import {
 } from '@/hooks/customers';
 import type { UpdateCustomerRequest } from '@/types/api';
 
+const CustomerLoyaltyTab = lazy(() =>
+  import('@/features/loyalty/CustomerLoyaltyTab')
+    .then((module) => ({ default: module.CustomerLoyaltyTab }))
+    .catch(() => ({ default: () => <BranchBTabFallback label="Loyalty" /> })),
+);
+const CustomerCreditTab = lazy(() =>
+  import('@/features/credit/CustomerCreditTab')
+    .then((module) => ({ default: module.CustomerCreditTab }))
+    .catch(() => ({ default: () => <BranchBTabFallback label="Credit" /> })),
+);
+const CustomerWhatsAppTab = lazy(() =>
+  import('@/features/whatsapp/CustomerWhatsAppTab')
+    .then((module) => ({ default: module.CustomerWhatsAppTab }))
+    .catch(() => ({ default: () => <BranchBTabFallback label="WhatsApp" /> })),
+);
+
 interface TxnRow {
   transaction_id: string;
   created_at: string;
   payment_mode: string;
   notes: string | null;
+}
+
+function BranchBTabFallback({ label }: { label: string }) {
+  return <EmptyState title={`${label} tab unavailable`} body={`${label} data is loading or temporarily unavailable.`} />;
 }
 
 export default function CustomerDetailPage() {
@@ -36,7 +56,7 @@ export default function CustomerDetailPage() {
 
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<UpdateCustomerRequest>({});
-  const [activeTab, setActiveTab] = useState<'profile' | 'transactions' | 'summary'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'transactions' | 'summary' | 'loyalty' | 'credit' | 'whatsapp'>('profile');
 
   const customer = customerQuery.data;
   const summary = summaryQuery.data;
@@ -82,10 +102,13 @@ export default function CustomerDetailPage() {
       <Button variant="ghost" onClick={() => navigate('/customers')} className="mb-4">← Back to Customers</Button>
 
       {/* Tabs */}
-      <div className="button-row" style={{ marginBottom: '1.5rem' }}>
+      <div className="button-row" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <Button variant={activeTab === 'profile' ? 'primary' : 'ghost'} onClick={() => setActiveTab('profile')}>Profile</Button>
         <Button variant={activeTab === 'transactions' ? 'primary' : 'ghost'} onClick={() => setActiveTab('transactions')}>Transactions</Button>
         <Button variant={activeTab === 'summary' ? 'primary' : 'ghost'} onClick={() => setActiveTab('summary')}>Summary</Button>
+        <Button variant={activeTab === 'loyalty' ? 'primary' : 'ghost'} onClick={() => setActiveTab('loyalty')}>Loyalty</Button>
+        <Button variant={activeTab === 'credit' ? 'primary' : 'ghost'} onClick={() => setActiveTab('credit')}>Credit</Button>
+        <Button variant={activeTab === 'whatsapp' ? 'primary' : 'ghost'} onClick={() => setActiveTab('whatsapp')}>WhatsApp</Button>
       </div>
 
       {/* Profile tab */}
@@ -177,6 +200,24 @@ export default function CustomerDetailPage() {
             <EmptyState title="No summary data" body="Summary data is not available for this customer yet." />
           )}
         </div>
+      )}
+
+      {activeTab === 'loyalty' && (
+        <Suspense fallback={<BranchBTabFallback label="Loyalty" />}>
+          <CustomerLoyaltyTab customerId={id} />
+        </Suspense>
+      )}
+
+      {activeTab === 'credit' && (
+        <Suspense fallback={<BranchBTabFallback label="Credit" />}>
+          <CustomerCreditTab customerId={id} />
+        </Suspense>
+      )}
+
+      {activeTab === 'whatsapp' && (
+        <Suspense fallback={<BranchBTabFallback label="WhatsApp" />}>
+          <CustomerWhatsAppTab phoneNumber={customer?.mobile_number ?? ''} />
+        </Suspense>
       )}
     </PageFrame>
   );

@@ -1,148 +1,17 @@
-import type { ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
-import {
-  BarChart3,
-  Barcode,
-  Boxes,
-  BrainCircuit,
-  Building2,
-  CalendarClock,
-  ChevronLeft,
-  ChevronRight,
-  CircleDollarSign,
-  CreditCard,
-  FileText,
-  FolderKanban,
-  Globe2,
-  LayoutDashboard,
-  Megaphone,
-  ReceiptText,
-  RotateCcw,
-  ShieldCheck,
-  ShoppingCart,
-  ScanLine,
-  Sparkles,
-  Store,
-  Users,
-  Webhook,
-  Wrench,
-  Zap,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { uiStore } from '@/stores/uiStore';
 import { authStore } from '@/stores/authStore';
-import { routes } from '@/routes/routes';
-
-type NavItem = {
-  label: string;
-  to: string;
-  icon: ComponentType<{ className?: string }>;
-  ownerOnly?: boolean;
-};
-
-type NavGroup = {
-  title: string;
-  items: NavItem[];
-};
-
-const navGroups: NavGroup[] = [
-  {
-    title: 'Dashboard',
-    items: [
-      { label: 'Overview', to: routes.dashboard, icon: LayoutDashboard },
-      { label: 'Smart Alerts', to: routes.smartAlerts, icon: Sparkles },
-      { label: 'Reports', to: routes.reports, icon: FileText },
-      { label: 'Financial Calendar', to: routes.financialCalendar, icon: CalendarClock },
-    ],
-  },
-  {
-    title: 'Inventory',
-    items: [
-      { label: 'Products', to: routes.inventory, icon: Boxes },
-      { label: 'Stock Audit', to: routes.stockAudit, icon: ShieldCheck },
-      { label: 'Receipts', to: routes.inventoryReceipts, icon: ReceiptText },
-      { label: 'Barcodes', to: routes.inventoryBarcodes, icon: Barcode },
-      { label: 'Vision OCR', to: routes.inventoryVision, icon: ScanLine },
-      { label: 'Pricing', to: routes.pricing, icon: CircleDollarSign, ownerOnly: true },
-      { label: 'Forecasting', to: routes.forecasting, icon: BarChart3, ownerOnly: true },
-    ],
-  },
-  {
-    title: 'Orders',
-    items: [
-      { label: 'POS / New Sale', to: routes.pos, icon: ShoppingCart },
-      { label: 'Transactions', to: routes.transactions, icon: FileText },
-      { label: 'Returns', to: routes.returns, icon: RotateCcw },
-      { label: 'Purchase Orders', to: routes.purchaseOrders, icon: FolderKanban },
-      { label: 'Suppliers', to: routes.suppliers, icon: Store },
-      { label: 'Marketplace', to: routes.marketplace, icon: Building2 },
-    ],
-  },
-  {
-    title: 'Customers',
-    items: [
-      { label: 'All Customers', to: routes.customers, icon: Users },
-      { label: 'Loyalty', to: routes.loyalty, icon: Sparkles },
-      { label: 'Credit', to: routes.credit, icon: CreditCard },
-      { label: 'WhatsApp', to: routes.whatsapp, icon: Webhook },
-    ],
-  },
-  {
-    title: 'Analytics',
-    items: [
-      { label: 'Business Analytics', to: routes.analytics, icon: BarChart3, ownerOnly: true },
-      { label: 'Market Intelligence', to: routes.marketIntelligence, icon: Megaphone, ownerOnly: true },
-      { label: 'Decisions', to: routes.decisions, icon: BrainCircuit, ownerOnly: true },
-      { label: 'Staff Performance', to: routes.staff, icon: Users },
-      { label: 'Offline Data', to: routes.offline, icon: Globe2 },
-    ],
-  },
-  {
-    title: 'Financials',
-    items: [
-      { label: 'Finance Dashboard', to: routes.finance, icon: CircleDollarSign },
-      { label: 'GST / Tax', to: routes.financeGst, icon: FileText },
-      { label: 'E-Invoicing', to: routes.financeEinvoice, icon: ReceiptText },
-    ],
-  },
-  {
-    title: 'Operations',
-    items: [
-      { label: 'Chain Management', to: routes.chain, icon: Store },
-      { label: 'Operations', to: routes.operations, icon: Building2 },
-      { label: 'Developer Platform', to: routes.developer, icon: Zap },
-      { label: 'KYC', to: routes.kyc, icon: ShieldCheck },
-      { label: 'Team', to: routes.team, icon: Users },
-      { label: 'Maintenance', to: routes.ops, icon: Wrench },
-    ],
-  },
-  {
-    title: 'Settings',
-    items: [
-      { label: 'Store Profile', to: routes.storeProfile, icon: Store, ownerOnly: true },
-      { label: 'Internationalization', to: routes.settingsI18n, icon: Globe2 },
-    ],
-  },
-];
+import { sidebarNavGroups, type ShellRole } from './navigation';
 
 const calendarDays = [1, 2, 3, 4, 5, 6];
-
-function ScanIcon({ className }: { className?: string }) {
-  return <span className={className}>OCR</span>;
-}
-
-export function sidebarNavGroups(role: 'owner' | 'staff' | null) {
-  return navGroups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => !item.ownerOnly || role === 'owner'),
-  }));
-}
 
 export function Sidebar() {
   const collapsed = uiStore((state) => state.sidebarCollapsed);
   const toggleSidebar = uiStore((state) => state.toggleSidebar);
   const role = authStore((state) => state.role);
-  const groups = sidebarNavGroups(role);
+  const groups = sidebarNavGroups(role as ShellRole);
 
   return (
     <aside className={cn('sidebar', collapsed && 'sidebar--collapsed')}>
@@ -172,7 +41,7 @@ export function Sidebar() {
                     to={item.to}
                     className={({ isActive }) => cn('sidebar__item', isActive && 'sidebar__item--active')}
                   >
-                    {item.label === 'Vision OCR' ? <ScanIcon className="sidebar__item-icon" /> : <Icon className="sidebar__item-icon" />}
+                    <Icon className="sidebar__item-icon" />
                     {!collapsed ? <span>{item.label}</span> : null}
                   </NavLink>
                 );

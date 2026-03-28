@@ -30,6 +30,8 @@ export const DeveloperPage = lazy(() => import('@/pages/Developer'));
 export const TeamPage = lazy(() => import('@/pages/Team'));
 export const OpsPage = lazy(() => import('@/pages/Ops'));
 export const MarketplacePage = lazy(() => import('@/pages/Marketplace'));
+export const OrdersPage = lazy(() => import('@/features/orders/OrdersPage'));
+export const OmnichannelPage = lazy(() => import('@/features/omnichannel/OmnichannelPage'));
 export const ChainPage = lazy(() => import('@/pages/Chain'));
 export const WhatsAppPage = lazy(() => import('@/pages/WhatsApp'));
 export const I18nPage = lazy(() => import('@/pages/I18n'));

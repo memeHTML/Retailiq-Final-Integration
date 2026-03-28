@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import { act } from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,7 @@ import { COMMAND_PALETTE_RECENTS_KEY } from '@/lib/constants';
 const navigateMock = vi.fn();
 const consoleErrorSpy = vi.spyOn(console, 'error');
 let unexpectedConsoleErrors: string[] = [];
+let currentRole: 'owner' | 'staff' | null = 'owner';
 
 class ResizeObserverMock {
   observe() {}
@@ -25,6 +26,10 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('@/stores/authStore', () => ({
+  authStore: (selector: (state: { role: 'owner' | 'staff' | null }) => unknown) => selector({ role: currentRole }),
+}));
+
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
   configurable: true,
@@ -33,14 +38,17 @@ Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
 
 describe('CommandPalette', () => {
   beforeEach(() => {
+    cleanup();
     vi.clearAllMocks();
     window.localStorage.clear();
+    currentRole = 'owner';
     unexpectedConsoleErrors = [];
     consoleErrorSpy.mockImplementation((...args: unknown[]) => {
       const message = args.map((value) => String(value)).join(' ');
       if (
         (message.includes('wrapped in act(...)') && message.includes('cmdk/dist/index.mjs')) ||
-        (message.includes('wrapped in act(...)') && message.includes('CommandPalette'))
+        (message.includes('wrapped in act(...)') && message.includes('CommandPalette')) ||
+        message.includes('current testing environment is not configured to support act')
       ) {
         return;
       }
@@ -50,6 +58,7 @@ describe('CommandPalette', () => {
 
   afterEach(() => {
     expect(unexpectedConsoleErrors).toEqual([]);
+    cleanup();
   });
 
   afterAll(() => {
@@ -152,5 +161,19 @@ describe('CommandPalette', () => {
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/settings/i18n');
     });
+  });
+
+  it('hides owner-only destinations from staff users', async () => {
+    currentRole = 'staff';
+    const { container } = render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    const dialog = within(container).getByRole('dialog', { name: /quick search/i });
+    expect(within(dialog).queryByText(/^pricing$/i)).toBeNull();
+    expect(within(dialog).queryByText(/^market intelligence$/i)).toBeNull();
+    expect(within(dialog).queryByText(/^decisions$/i)).toBeNull();
   });
 });

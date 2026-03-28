@@ -3,7 +3,8 @@ import { Command } from 'cmdk';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { COMMAND_PALETTE_RECENTS_KEY } from '@/lib/constants';
-import { routes } from '@/routes/routes';
+import { authStore } from '@/stores/authStore';
+import { canonicalNavItemForPath, canonicalizePathname, flattenedNavItems, type ShellNavItem, type ShellRole } from './navigation';
 
 type CommandItem = {
   label: string;
@@ -11,60 +12,7 @@ type CommandItem = {
   to: string;
 };
 
-const aliasToCanonicalPath: Record<string, string> = {
-  [routes.developerLegacy]: routes.developer,
-  [routes.kycLegacy]: routes.kyc,
-  [routes.teamLegacy]: routes.team,
-  [routes.opsLegacy]: routes.ops,
-  [routes.i18n]: routes.settingsI18n,
-  [routes.events]: routes.financialCalendar,
-};
-
-const commandItems: CommandItem[] = [
-  { label: 'Dashboard', description: 'Overview and KPIs', to: routes.dashboard },
-  { label: 'Smart Alerts', description: 'Critical store alerts', to: routes.smartAlerts },
-  { label: 'Reports', description: 'Operational and financial reports', to: routes.reports },
-  { label: 'Financial Calendar', description: 'Upcoming finance dates', to: routes.financialCalendar },
-  { label: 'POS / New Sale', description: 'Create a new transaction', to: routes.pos },
-  { label: 'Transactions', description: 'Sales and returns', to: routes.transactions },
-  { label: 'Returns', description: 'Return and refund operations', to: routes.returns },
-  { label: 'Inventory', description: 'Products and stock', to: routes.inventory },
-  { label: 'Stock Audit', description: 'Counted stock reconciliation', to: routes.stockAudit },
-  { label: 'Receipts', description: 'Receipt templates and print jobs', to: routes.inventoryReceipts },
-  { label: 'Barcodes', description: 'Barcode lookup and registration', to: routes.inventoryBarcodes },
-  { label: 'Vision OCR', description: 'OCR upload and review', to: routes.inventoryVision },
-  { label: 'Suppliers', description: 'Supplier records and product links', to: routes.suppliers },
-  { label: 'Purchase Orders', description: 'Drafts, receiving, and PDF export', to: routes.purchaseOrders },
-  { label: 'Marketplace', description: 'Supplier marketplace tools', to: routes.marketplace },
-  { label: 'Chain Management', description: 'Multi-store groups and transfers', to: routes.chain },
-  { label: 'Customers', description: 'Customer records', to: routes.customers },
-  { label: 'Loyalty', description: 'Rewards program', to: routes.loyalty },
-  { label: 'Credit', description: 'Customer credit accounts', to: routes.credit },
-  { label: 'WhatsApp', description: 'Messaging and campaigns', to: routes.whatsapp },
-  { label: 'Analytics', description: 'Reports and insights', to: routes.analytics },
-  { label: 'Market Intelligence', description: 'Competitor and price signals', to: routes.marketIntelligence },
-  { label: 'Financials', description: 'Ledger and treasury', to: routes.finance },
-  { label: 'GST / Tax', description: 'Tax and compliance', to: routes.financeGst },
-  { label: 'E-Invoicing', description: 'Invoice generation and status', to: routes.financeEinvoice },
-  { label: 'AI Assistant', description: 'Ask the assistant', to: routes.ai },
-  { label: 'Store Profile', description: 'Business settings', to: routes.storeProfile },
-  { label: 'Store Categories', description: 'Category management', to: routes.storeCategories },
-  { label: 'Tax Config', description: 'Store tax rules', to: routes.storeTaxConfig },
-  { label: 'Internationalization', description: 'Translations, currencies, and countries', to: routes.settingsI18n },
-  { label: 'MFA', description: 'Security and verification setup', to: routes.mfa },
-  { label: 'Operations Hub', description: 'Overview of operations workflows', to: routes.operations },
-  { label: 'Developer Platform', description: 'API keys, webhooks, usage, logs, and rate limits', to: routes.developer },
-  { label: 'KYC', description: 'Provider verification and status', to: routes.kyc },
-  { label: 'Team', description: 'Team connectivity checks', to: routes.team },
-  { label: 'Maintenance', description: 'System status and incidents', to: routes.ops },
-];
-
-const commandItemsByPath = new Map(commandItems.map((item) => [item.to, item]));
-
-const canonicalCommandItemForPath = (path: string): CommandItem | null => {
-  const canonicalPath = aliasToCanonicalPath[path] ?? path;
-  return commandItemsByPath.get(canonicalPath) ?? null;
-};
+type RecentCommandItem = Pick<ShellNavItem, 'label' | 'description' | 'to'>;
 
 interface CommandPaletteProps {
   open: boolean;
@@ -73,8 +21,9 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate();
+  const role = authStore((state) => state.role);
   const [search, setSearch] = useState('');
-  const [recentItems, setRecentItems] = useState<CommandItem[]>([]);
+  const [recentItems, setRecentItems] = useState<RecentCommandItem[]>([]);
   const triggerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -101,8 +50,17 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       const parsed = JSON.parse(raw) as Array<Partial<CommandItem> | null | undefined>;
       const canonicalRecents = Array.isArray(parsed)
         ? parsed
-            .map((item) => (item?.to ? canonicalCommandItemForPath(item.to) : null))
-            .filter((item): item is CommandItem => Boolean(item))
+            .map((item): RecentCommandItem | null => {
+              if (!item?.to) {
+                return null;
+              }
+
+              const canonicalItem = canonicalNavItemForPath(canonicalizePathname(item.to), role as ShellRole);
+              return canonicalItem
+                ? { label: canonicalItem.label, description: canonicalItem.description, to: canonicalItem.to }
+                : null;
+            })
+            .filter((item): item is RecentCommandItem => Boolean(item))
             .filter((item, index, items) => items.findIndex((recent) => recent.to === item.to) === index)
         : [];
       setRecentItems(canonicalRecents);
@@ -128,6 +86,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onOpenChange]);
 
+  const commandItems = useMemo<CommandItem[]>(
+    () => flattenedNavItems(role as ShellRole).map((item) => ({ label: item.label, description: item.description, to: item.to })),
+    [role],
+  );
+
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
     if (!needle) {
@@ -135,7 +98,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
 
     return commandItems.filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(needle));
-  }, [search]);
+  }, [commandItems, search]);
 
   const persistRecentItem = (item: CommandItem) => {
     const nextRecent = [item, ...recentItems.filter((recent) => recent.to !== item.to)].slice(0, 6);

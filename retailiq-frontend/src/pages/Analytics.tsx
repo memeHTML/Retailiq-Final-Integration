@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { DataTable } from '@/components/ui/DataTable';
@@ -166,6 +167,33 @@ export default function AnalyticsPage() {
                   </div>
                 ))
               )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="transition-shadow hover:shadow-md">
+            <CardContent className="space-y-2 p-5">
+              <div className="text-sm uppercase tracking-wide text-gray-500">More Analytics</div>
+              <div className="text-lg font-semibold">Staff Performance</div>
+              <p className="text-sm text-gray-500">Track team revenue, targets, and daily performance trends.</p>
+              <Link className="button button--secondary" to="/staff-performance">Open staff performance</Link>
+            </CardContent>
+          </Card>
+          <Card className="transition-shadow hover:shadow-md">
+            <CardContent className="space-y-2 p-5">
+              <div className="text-sm uppercase tracking-wide text-gray-500">More Analytics</div>
+              <div className="text-lg font-semibold">Market Intelligence</div>
+              <p className="text-sm text-gray-500">Review market signals, competitors, and pricing recommendations.</p>
+              <Link className="button button--secondary" to="/market-intelligence">Open market intelligence</Link>
+            </CardContent>
+          </Card>
+          <Card className="transition-shadow hover:shadow-md">
+            <CardContent className="space-y-2 p-5">
+              <div className="text-sm uppercase tracking-wide text-gray-500">More Analytics</div>
+              <div className="text-lg font-semibold">Offline Data</div>
+              <p className="text-sm text-gray-500">Inspect local snapshots and sync health for disconnected workflows.</p>
+              <Link className="button button--secondary" to="/offline">Open offline data</Link>
             </CardContent>
           </Card>
         </div>
